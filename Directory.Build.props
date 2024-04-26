@@ -14,6 +14,8 @@
 
   <PropertyGroup>
     <Configurations>
+      ESWindowsDXDebug;ESUniversalGLDebug;ESWindowsGLDebug;ESWindowsXNADebug;
+      ESWindowsDXRelease;ESUniversalGLRelease;ESWindowsGLRelease;ESWindowsXNARelease;
       AresWindowsDXDebug;AresUniversalGLDebug;AresWindowsGLDebug;AresWindowsXNADebug;
       AresWindowsDXRelease;AresUniversalGLRelease;AresWindowsGLRelease;AresWindowsXNARelease;
       TSWindowsDXDebug;TSUniversalGLDebug;TSWindowsGLDebug;TSWindowsXNADebug;
@@ -27,6 +29,7 @@
   <PropertyGroup>
     <!-- Game -->
     <Game Condition="$(Configuration.Contains(Ares))">Ares</Game>
+    <Game Condition="$(Configuration.Contains(ES))">ES</Game>
     <Game Condition="$(Configuration.Contains(TS))">TS</Game>
     <Game Condition="$(Configuration.Contains(YR))">YR</Game>
 
@@ -75,6 +78,7 @@
 
     <!-- Games-->
     <DefineConstants Condition="'$(Game)' == 'Ares'">$(DefineConstants);ARES</DefineConstants>
+    <DefineConstants Condition="'$(Game)' == 'ES'">$(DefineConstants);ARES;ES</DefineConstants>
     <DefineConstants Condition="'$(Game)' == 'TS'">$(DefineConstants);TS</DefineConstants>
     <DefineConstants Condition="'$(Game)' == 'YR'">$(DefineConstants);YR</DefineConstants>
   </PropertyGroup>

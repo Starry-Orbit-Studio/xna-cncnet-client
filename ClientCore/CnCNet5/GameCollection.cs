@@ -26,6 +26,9 @@ namespace ClientCore.CnCNet5
             GameList = new List<CnCNetGame>();
 
             var assembly = Assembly.GetAssembly(typeof(GameCollection));
+#if ES
+            using Stream esIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.esicon.png");
+#endif
             using Stream dtaIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.dtaicon.png");
             using Stream tiIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.tiicon.png");
             using Stream tsIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.tsicon.png");
@@ -40,6 +43,9 @@ namespace ClientCore.CnCNet5
             using Stream d2kIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.d2kicon.png");
             using Stream ssIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.ssicon.png");
             using Stream unknownIconStream = assembly.GetManifestResourceStream("ClientCore.Resources.unknownicon.png");
+#if ES
+            using var esIcon = Image.Load(esIconStream);
+#endif
             using var dtaIcon = Image.Load(dtaIconStream);
             using var tiIcon = Image.Load(tiIconStream);
             using var tsIcon = Image.Load(tsIconStream);
@@ -58,6 +64,18 @@ namespace ClientCore.CnCNet5
             // Default supported games.
             CnCNetGame[] defaultGames =
             {
+#if ES
+                new()
+                {
+                    ChatChannel = "#cncnet-es",
+                    ClientExecutableName = "ExtremeStarry.exe",
+                    GameBroadcastChannel = "#cncnet-es-game",
+                    InternalName = "es",
+                    RegistryInstallPath = "HKCU\\Software\\ExtremeStarry",
+                    UIName = "Extreme Starry",
+                    Texture = AssetLoader.TextureFromImage(esIcon)
+                },
+#else
                 new()
                 {
                     ChatChannel = "#cncnet-dta",
@@ -79,7 +97,7 @@ namespace ClientCore.CnCNet5
                     UIName = "Twisted Insurrection",
                     Texture = AssetLoader.TextureFromImage(tiIcon)
                 },
-
+#endif
                 new()
                 {
                     ChatChannel = "#cncnet-mo",
@@ -90,7 +108,7 @@ namespace ClientCore.CnCNet5
                     UIName = "Mental Omega",
                     Texture = AssetLoader.TextureFromImage(moIcon)
                 },
-
+#if !ES
                 new()
                 {
                     ChatChannel = "#redres-lobby",
@@ -170,7 +188,7 @@ namespace ClientCore.CnCNet5
                     UIName = "Tiberian Sun",
                     Texture = AssetLoader.TextureFromImage(tsIcon)
                 },
-
+#endif
                 new()
                 {
                     ChatChannel = "#cncnet-yr",
@@ -181,7 +199,7 @@ namespace ClientCore.CnCNet5
                     UIName = "Yuri's Revenge",
                     Texture = AssetLoader.TextureFromImage(yrIcon)
                 },
-
+#if !ES
                 new()
                 {
                     ChatChannel = "#cncnet-ss",
@@ -193,6 +211,7 @@ namespace ClientCore.CnCNet5
                     Texture = AssetLoader.TextureFromImage(ssIcon),
                     Supported = false
                 }
+#endif
             };
 
             // CnCNet chat.

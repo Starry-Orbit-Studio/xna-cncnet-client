@@ -5,6 +5,7 @@
   <ItemGroup>
     <None Remove="Resources\*.png" />
     <EmbeddedResource Include="Resources\*.png" />
+    <EmbeddedResource Condition=" $(Game) != 'ES' " Remove="Resources\esicon.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Rampastring.Tools" />
