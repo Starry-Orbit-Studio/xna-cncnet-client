@@ -10,6 +10,7 @@ using Rampastring.XNAUI;
 using Rampastring.Tools;
 using ClientUpdater;
 using ClientCore.Extensions;
+using System.Linq;
 
 namespace DTAClient.DXGUI.Generic
 {
@@ -17,6 +18,9 @@ namespace DTAClient.DXGUI.Generic
     {
         private const int DEFAULT_WIDTH = 650;
         private const int DEFAULT_HEIGHT = 600;
+
+        private const string FILTER_SECTION = "Filters";
+        private const string FILTER_SIDES_KEY = "Sides";
 
         private static string[] DifficultyNames = new string[] { "Easy", "Medium", "Hard" };
 
@@ -35,12 +39,18 @@ namespace DTAClient.DXGUI.Generic
         private DiscordHandler discordHandler;
 
         private List<Mission> Missions = new List<Mission>();
+        private List<Mission> RawMissions = new();
         private XNAListBox lbCampaignList;
         private XNAClientButton btnLaunch;
         private XNATextBlock tbMissionDescription;
         private XNATrackbar trbDifficultySelector;
 
         private CheaterWindow cheaterWindow;
+
+        /// <summary>
+        /// 任务筛选器.
+        /// </summary>
+        private List<(XNAClientToggleButton Filter, int[] Sides)> Filters = new();
 
         private string[] filesToCheck = new string[]
         {
@@ -188,6 +198,61 @@ namespace DTAClient.DXGUI.Generic
             cheaterWindow.CenterOnParent();
             cheaterWindow.YesClicked += CheaterWindow_YesClicked;
             cheaterWindow.Disable();
+        }
+
+        protected override void GetINIAttributes(IniFile iniFile)
+        {
+            if (iniFile?.GetSection(FILTER_SECTION) is IniSection section)
+            {
+                Filters = section.Keys
+                    .Select(i => i.Value)
+                    .Select(i => (
+                        new XNAClientToggleButton(WindowManager)
+                        {
+                            Name = i,
+                            CheckedTexture = AssetLoader.LoadTexture($"{i}Filter_L.png"),
+                            UncheckedTexture = AssetLoader.LoadTexture($"{i}Filter.png"),
+                        },
+                        iniFile.GetStringValue(i, FILTER_SIDES_KEY, string.Empty)
+                            .Split(',')
+                            .Select(i => int.Parse(i.Trim()))
+                            .ToArray()))
+                    .ToList();
+
+                foreach (XNAClientToggleButton filter in Filters.Select(i => i.Filter))
+                {
+                    filter.LeftClick += Filter_LeftClick;
+                    AddChild(filter);
+                }
+            }
+
+            base.GetINIAttributes(iniFile);
+        }
+
+        private void Filter_LeftClick(object sender, EventArgs e)
+        {
+            if (sender is not XNAClientToggleButton filter)
+                return;
+
+            Missions.Clear();
+            Filters.ForEach(i =>
+            {
+                if (i.Filter == sender && i.Filter.Checked != true)
+                {
+                    i.Filter.Checked = true;
+                    Missions.AddRange(RawMissions.Where(j => i.Sides.Contains(j.Side)));
+                }
+                else
+                {
+                    i.Filter.Checked = false;
+                }
+            });
+
+            if (Missions is { Count: 0 })
+                Missions.AddRange(RawMissions);
+
+            lbCampaignList.Clear();
+            Missions.ForEach(AddMissionToList);
         }
 
         private void LbCampaignList_SelectedIndexChanged(object sender, EventArgs e)
@@ -389,33 +454,40 @@ namespace DTAClient.DXGUI.Generic
                 var mission = new Mission(battleIni, battleSection, i);
 
                 Missions.Add(mission);
-
-                var item = new XNAListBoxItem();
-                item.Text = mission.GUIName;
-                if (!mission.Enabled)
-                {
-                    item.TextColor = UISettings.ActiveSettings.DisabledItemColor;
-                }
-                else if (string.IsNullOrEmpty(mission.Scenario))
-                {
-                    item.TextColor = AssetLoader.GetColorFromString(
-                        ClientConfiguration.Instance.ListBoxHeaderColor);
-                    item.IsHeader = true;
-                    item.Selectable = false;
-                }
-                else
-                {
-                    item.TextColor = lbCampaignList.DefaultItemColor;
-                }
-
-                if (!string.IsNullOrEmpty(mission.IconPath))
-                    item.Texture = AssetLoader.LoadTexture(mission.IconPath + "icon.png");
-
-                lbCampaignList.AddItem(item);
+                RawMissions.Add(mission);
+                AddMissionToList(mission);
             }
 
             Logger.Log("Finished parsing " + path + ".");
             return true;
+        }
+
+        private void AddMissionToList(Mission mission)
+        {
+            XNAListBoxItem item = new()
+            {
+                Text = mission.GUIName
+            };
+            if (!mission.Enabled)
+            {
+                item.TextColor = UISettings.ActiveSettings.DisabledItemColor;
+            }
+            else if (string.IsNullOrEmpty(mission.Scenario))
+            {
+                item.TextColor = AssetLoader.GetColorFromString(
+                    ClientConfiguration.Instance.ListBoxHeaderColor);
+                item.IsHeader = true;
+                item.Selectable = false;
+            }
+            else
+            {
+                item.TextColor = lbCampaignList.DefaultItemColor;
+            }
+
+            if (!string.IsNullOrEmpty(mission.IconPath))
+                item.Texture = AssetLoader.LoadTexture(mission.IconPath + "icon.png");
+
+            lbCampaignList.AddItem(item);
         }
 
         public override void Draw(GameTime gameTime)
