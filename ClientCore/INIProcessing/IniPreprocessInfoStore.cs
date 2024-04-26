@@ -60,7 +60,7 @@ namespace ClientCore.INIProcessing
                 }
 
                 // If an INI file no longer exists, it's useless to keep its record
-                if (!SafePath.GetFile(ProgramConstants.GamePath, "INI", values[0]).Exists)
+                if (!SafePath.GetFile(ClientConfiguration.Instance.ConfigFileDirectory, values[0]).Exists)
                     continue;
 
                 PreprocessedIniInfos.Add(new PreprocessedIniInfo(values));
@@ -81,11 +81,11 @@ namespace ClientCore.INIProcessing
             if (info == null)
                 return false;
 
-            string processedFileHash = Utilities.CalculateSHA1ForFile(SafePath.CombineFilePath(ProgramConstants.GamePath, "INI", fileName));
+            string processedFileHash = Utilities.CalculateSHA1ForFile(SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, fileName));
             if (processedFileHash != info.ProcessedFileHash)
                 return false;
 
-            string originalFileHash = Utilities.CalculateSHA1ForFile(SafePath.CombineFilePath(ProgramConstants.GamePath, "INI", "Base", fileName));
+            string originalFileHash = Utilities.CalculateSHA1ForFile(SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, "Base", fileName));
             if (originalFileHash != info.OriginalFileHash)
                 return false;
 

@@ -244,6 +244,8 @@ namespace ClientCore
         
         public string CustomMapsDirectory => SafePath.CombineDirectoryPath(ProgramConstants.GamePath, clientDefinitionsIni.GetStringValue(SETTINGS, nameof(CustomMapsDirectory), "Maps/Custom"));
 
+        public string ConfigFileDirectory => SafePath.CombineDirectoryPath(ProgramConstants.GamePath, clientDefinitionsIni.GetStringValue(SETTINGS, nameof(ConfigFileDirectory), "INI"));
+
         /// <summary>
         /// Returns the directory path for a theme, or null if the specified
         /// theme name doesn't exist.
@@ -314,7 +316,7 @@ namespace ClientCore
 
         public string ExtraExeCommandLineParameters => clientDefinitionsIni.GetStringValue(SETTINGS, "ExtraCommandLineParams", string.Empty);
 
-        public string MPMapsIniPath => SafePath.CombineFilePath(clientDefinitionsIni.GetStringValue(SETTINGS, "MPMapsPath", SafePath.CombineFilePath("INI", "MPMaps.ini")));
+        public string MPMapsIniPath => SafePath.CombineFilePath(clientDefinitionsIni.GetStringValue(SETTINGS, "MPMapsPath", SafePath.CombineFilePath(ConfigFileDirectory, "MPMaps.ini")));
 
         public string KeyboardINI => clientDefinitionsIni.GetStringValue(SETTINGS, "KeyboardINI", "Keyboard.ini");
 
