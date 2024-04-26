@@ -241,6 +241,8 @@ namespace ClientCore
         public string StatisticsLogFileName => clientDefinitionsIni.GetStringValue(SETTINGS, "StatisticsLogFileName", "DTA.LOG");
 
         public (string Name, string Path) GetThemeInfoFromIndex(int themeIndex) => clientDefinitionsIni.GetStringValue("Themes", themeIndex.ToString(), ",").Split(',').AsTuple2();
+        
+        public string CustomMapsDirectory => SafePath.CombineDirectoryPath(ProgramConstants.GamePath, clientDefinitionsIni.GetStringValue(SETTINGS, nameof(CustomMapsDirectory), "Maps/Custom"));
 
         /// <summary>
         /// Returns the directory path for a theme, or null if the specified

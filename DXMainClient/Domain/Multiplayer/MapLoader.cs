@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,7 +14,7 @@ namespace DTAClient.Domain.Multiplayer
     public class MapLoader
     {
         public const string MAP_FILE_EXTENSION = ".map";
-        private const string CUSTOM_MAPS_DIRECTORY = "Maps/Custom";
+        private static readonly string CUSTOM_MAPS_DIRECTORY = ClientConfiguration.Instance.CustomMapsDirectory;
         private static readonly string CUSTOM_MAPS_CACHE = SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "custom_map_cache");
         private const string MultiMapsSection = "MultiMaps";
         private const string GameModesSection = "GameModes";

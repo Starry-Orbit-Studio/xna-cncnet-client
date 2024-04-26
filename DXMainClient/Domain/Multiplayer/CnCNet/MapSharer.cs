@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
@@ -126,7 +126,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         {
             ServicePointManager.Expect100Continue = false;
 
-            FileInfo zipFile = SafePath.GetFile(ProgramConstants.GamePath, "Maps", "Custom", FormattableString.Invariant($"{map.SHA1}.zip"));
+            FileInfo zipFile = SafePath.GetFile(ProgramConstants.GamePath, ClientConfiguration.Instance.CustomMapsDirectory , FormattableString.Invariant($"{map.SHA1}.zip"));
 
             if (zipFile.Exists) zipFile.Delete();
 
@@ -369,7 +369,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
 
         private static string DownloadMain(string sha1, string myGame, string mapName, out bool success)
         {
-            string customMapsDirectory = SafePath.CombineDirectoryPath(ProgramConstants.GamePath, "Maps", "Custom");
+            string customMapsDirectory = SafePath.CombineDirectoryPath(ProgramConstants.GamePath, ClientConfiguration.Instance.CustomMapsDirectory);
 
             string mapFileName = GetMapFileName(sha1, mapName);
 

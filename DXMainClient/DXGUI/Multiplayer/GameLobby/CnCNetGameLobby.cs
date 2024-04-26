@@ -1631,7 +1631,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             string mapFileName = MapSharer.GetMapFileName(e.SHA1, e.MapName);
             Logger.Log("Map " + mapFileName + " downloaded, parsing.");
-            string mapPath = "Maps/Custom/" + mapFileName;
+            string mapPath = SafePath.CombineFilePath(ClientConfiguration.Instance.CustomMapsDirectory, mapFileName);
             Map map = MapLoader.LoadCustomMap(mapPath, out string returnMessage);
             if (map != null)
             {
