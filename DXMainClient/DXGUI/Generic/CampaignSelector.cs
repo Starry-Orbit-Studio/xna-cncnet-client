@@ -1,4 +1,4 @@
-using ClientCore;
+﻿using ClientCore;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -344,7 +344,7 @@ namespace DTAClient.DXGUI.Generic
 
         private void ReadMissionList()
         {
-            ParseBattleIni(SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, "Battle.ini"));
+            ParseBattleIni(SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, ClientConfiguration.Instance.BattleFileName));
 
             if (Missions.Count == 0)
                 ParseBattleIni(SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, ClientConfiguration.Instance.BattleFSFileName));
