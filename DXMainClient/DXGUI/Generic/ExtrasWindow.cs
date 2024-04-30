@@ -44,7 +44,11 @@ namespace DTAClient.DXGUI.Generic
             var btnExCancel = new XNAClientButton(WindowManager);
             btnExCancel.Name = "btnExCancel";
             btnExCancel.ClientRectangle = new Rectangle(76, 160, UIDesignConstants.BUTTON_WIDTH_133, UIDesignConstants.BUTTON_HEIGHT);
+#if ES
+            btnExCancel.Text = "Cancel".L10N("Client:Main:ButtonCancelEx");
+#else
             btnExCancel.Text = "Cancel".L10N("Client:Main:ButtonCancel");
+#endif
             btnExCancel.LeftClick += BtnExCancel_LeftClick;
 
             AddChild(btnExStatistics);
