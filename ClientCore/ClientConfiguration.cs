@@ -29,6 +29,12 @@ namespace ClientCore
         private IniFile clientDefinitionsIni;
         private IniFile networkDefinitionsIni;
 
+#if NETFRAMEWORK
+        private static readonly Random Random = new ();
+#else           
+        private static readonly Random Random = Random.Shared;
+#endif
+
         protected ClientConfiguration()
         {
             var baseResourceDirectory = SafePath.GetDirectory(ProgramConstants.GetBaseResourcePath());
@@ -72,8 +78,14 @@ namespace ClientCore
         }
 
         #region Client settings
-
+#if !ES
         public string MainMenuMusicName => SafePath.CombineFilePath(DTACnCNetClient_ini.GetStringValue(GENERAL, "MainMenuTheme", "mainmenu"));
+#else
+        public int MainMenuMusicCount => DTACnCNetClient_ini.GetIntValue(GENERAL, "MainMenuThemeCount", 0);
+        public string MainMenuMusicName => SafePath.CombineFilePath(
+            ProgramConstants.GetResourcePath(),
+            DTACnCNetClient_ini.GetStringValue(GENERAL, $"MainMenuTheme{Random.Next(MainMenuMusicCount)}", "mainmenu"));
+#endif
 
         public float DefaultAlphaRate => DTACnCNetClient_ini.GetSingleValue(GENERAL, "AlphaRate", 0.005f);
 
@@ -243,7 +255,7 @@ namespace ClientCore
         public string StatisticsLogFileName => clientDefinitionsIni.GetStringValue(SETTINGS, "StatisticsLogFileName", "DTA.LOG");
 
         public (string Name, string Path) GetThemeInfoFromIndex(int themeIndex) => clientDefinitionsIni.GetStringValue("Themes", themeIndex.ToString(), ",").Split(',').AsTuple2();
-        
+
         public string CustomMapsDirectory => SafePath.CombineDirectoryPath(ProgramConstants.GamePath, clientDefinitionsIni.GetStringValue(SETTINGS, nameof(CustomMapsDirectory), "Maps/Custom"));
 
         public string ConfigFileDirectory => SafePath.CombineDirectoryPath(ProgramConstants.GamePath, clientDefinitionsIni.GetStringValue(SETTINGS, nameof(ConfigFileDirectory), "INI"));
@@ -425,7 +437,7 @@ namespace ClientCore
         }
 
         public bool DiscordIntegrationGloballyDisabled => string.IsNullOrWhiteSpace(DiscordAppId) || DisableDiscordIntegration;
-        
+
         public OSVersion GetOperatingSystemVersion()
         {
 #if NETFRAMEWORK
