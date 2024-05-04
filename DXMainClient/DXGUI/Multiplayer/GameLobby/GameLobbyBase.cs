@@ -251,7 +251,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             XNAPanel rankHeader = new XNAPanel(WindowManager);
             rankHeader.BackgroundTexture = AssetLoader.LoadTexture("rank.png");
             rankHeader.ClientRectangle = new Rectangle(0, 0, rankHeader.BackgroundTexture.Width,
-                19);
+                Math.Max(rankHeader.BackgroundTexture.Height, 19));
 
             XNAListBox rankListBox = new XNAListBox(WindowManager);
             rankListBox.TextBorderDistance = 2;
