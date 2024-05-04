@@ -1374,6 +1374,9 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
                 spawnIni.SetStringValue(sectionName, "Name", pInfo.Name);
                 spawnIni.SetIntValue(sectionName, "Side", pHouseInfo.InternalSideIndex);
+#if ES
+                spawnIni.SetBooleanValue(sectionName, "IsRandomSide", houseInfos[myIndex].IsRandomSide);
+#endif
                 spawnIni.SetBooleanValue(sectionName, "IsSpectator", pHouseInfo.IsSpectator);
                 spawnIni.SetIntValue(sectionName, "Color", pHouseInfo.ColorIndex);
                 spawnIni.SetStringValue(sectionName, "Ip", GetIPAddressForPlayer(pInfo));
@@ -1406,6 +1409,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     spawnIni.SetIntValue("HouseHandicaps", keyName, AIPlayers[aiId].HouseHandicapAILevel);
                     spawnIni.SetIntValue("HouseCountries", keyName, houseInfos[Players.Count + aiId].InternalSideIndex);
                     spawnIni.SetIntValue("HouseColors", keyName, houseInfos[Players.Count + aiId].ColorIndex);
+#if ES
+                    int randomType = 0;
+                    if (houseInfos[Players.Count + aiId].IsRandomSide)
+                        randomType |= 0b0001;
+                    spawnIni.SetIntValue("HouseRandoms", keyName, randomType);
+#endif
                 }
             }
 
@@ -1616,10 +1625,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     Logger.Log(errorMessage);
                     Logger.Log(ex.ToString());
                     XNAMessageBox.Show(WindowManager, "Error".L10N("Client:Main:Error"), errorMessage);
-                    
+
                 }
             }
-            
+
             // Write the supplemental map files to the INI (eventual spawnmap.ini)
             mapIni.SetStringValue("Basic", "SupplementalFiles", string.Join(",", supplementalFileNames));
         }

@@ -31,6 +31,7 @@ namespace DTAClient.Domain.Multiplayer
         public int RealStartingWaypoint { get; set; }
 
         public bool IsSpectator { get; set; }
+        public bool IsRandomSide { get; set; }
 
         /// <summary>
         /// Applies the player's side into the information
@@ -53,6 +54,7 @@ namespace DTAClient.Domain.Multiplayer
                 while (disallowedSideArray[sideId]);
 
                 SideIndex = sideId;
+                IsRandomSide = true;
             }
             else
             {
@@ -67,6 +69,7 @@ namespace DTAClient.Domain.Multiplayer
                     while (disallowedSideArray[sideId]);
 
                     SideIndex = sideId;
+                    IsRandomSide = true;
                 }
                 else SideIndex = pInfo.SideId - randomCount; // The player has selected a side
             }
