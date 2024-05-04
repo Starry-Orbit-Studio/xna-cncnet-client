@@ -755,7 +755,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 Text = uiName ?? name.L10N($"INI:Sides:{name}"),
                 Tag = name,
-                Texture = texture ?? LoadTextureOrNull(name + "icon.png"),
+                Texture = texture ?? LoadTextureOrNull(SafePath.CombineFilePath("assets", "images", "side", name + "icon.png")),
             };
             dd.AddItem(item);
         }
@@ -815,7 +815,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     ddPlayerName.Y, sideWidth, DROP_DOWN_HEIGHT);
 
                 const string randomName = "Random";
-                AddSideToDropDown(ddPlayerSide, randomName, randomName.L10N("Client:Sides:RandomSide"), LoadTextureOrNull("randomicon.png"));
+                AddSideToDropDown(ddPlayerSide, randomName, randomName.L10N("Client:Sides:RandomSide"),
+                    LoadTextureOrNull(SafePath.CombineFilePath("assets", "images", "side", "randomicon.png")));
 
                 foreach (string randomSelector in selectorNames)
                     AddSideToDropDown(ddPlayerSide, randomSelector);

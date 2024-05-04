@@ -43,7 +43,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             //MapPreviewBox.EnableContextMenu = true;
 
             const string spectatorName = "Spectator";
-            AddSideToDropDown(ddPlayerSides[0], spectatorName, spectatorName.L10N("Client:Sides:SpectatorSide"), AssetLoader.LoadTexture("spectatoricon.png"));
+            AddSideToDropDown(ddPlayerSides[0], spectatorName, spectatorName.L10N("Client:Sides:SpectatorSide"),
+                AssetLoader.LoadTexture(SafePath.CombineFilePath("assets", "images", "side", "spectatoricon.png")));
 
             MapPreviewBox.LocalStartingLocationSelected += MapPreviewBox_LocalStartingLocationSelected;
             MapPreviewBox.StartingLocationApplied += MapPreviewBox_StartingLocationApplied;
