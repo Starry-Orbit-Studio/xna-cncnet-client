@@ -108,6 +108,13 @@ namespace DTAClient
 
             Logger.Log("Loading settings.");
 
+            if (!File.Exists(ClientConfiguration.Instance.SettingsIniName))
+            {
+                File.Copy(
+                    SafePath.CombineFilePath(ProgramConstants.GetBaseResourcePath(), ClientConfiguration.Instance.DefaultSettingsIniName),
+                    ClientConfiguration.Instance.SettingsIniName,
+                    true);
+            }
             UserINISettings.Initialize(ClientConfiguration.Instance.SettingsIniName);
 
             // Try to load translation

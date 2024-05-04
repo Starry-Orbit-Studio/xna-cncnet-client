@@ -281,6 +281,8 @@ namespace ClientCore
 
         public string SettingsIniName => clientDefinitionsIni.GetStringValue(SETTINGS, "SettingsFile", "Settings.ini");
 
+        public string DefaultSettingsIniName => clientDefinitionsIni.GetStringValue(SETTINGS, "DefaultSettingsFile", "DefaultSettings.ini");
+
         public string TranslationIniName => clientDefinitionsIni.GetStringValue(TRANSLATIONS, nameof(TranslationIniName), "Translation.ini");
 
         public string TranslationsFolderPath => SafePath.CombineDirectoryPath(
