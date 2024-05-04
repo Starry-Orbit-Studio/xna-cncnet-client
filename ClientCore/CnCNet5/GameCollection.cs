@@ -97,7 +97,7 @@ namespace ClientCore.CnCNet5
                     UIName = "Twisted Insurrection",
                     Texture = AssetLoader.TextureFromImage(tiIcon)
                 },
-#endif
+
                 new()
                 {
                     ChatChannel = "#cncnet-mo",
@@ -108,6 +108,7 @@ namespace ClientCore.CnCNet5
                     UIName = "Mental Omega",
                     Texture = AssetLoader.TextureFromImage(moIcon)
                 },
+#endif
 #if !ES
                 new()
                 {
