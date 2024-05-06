@@ -1376,7 +1376,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 spawnIni.SetStringValue(sectionName, "Name", pInfo.Name);
                 spawnIni.SetIntValue(sectionName, "Side", pHouseInfo.InternalSideIndex);
 #if ES
-                spawnIni.SetBooleanValue(sectionName, "IsRandomSide", houseInfos[myIndex].IsRandomSide);
+                spawnIni.SetBooleanValue(sectionName, "IsRandomCountry", houseInfos[myIndex].IsRandomSide);
 #endif
                 spawnIni.SetBooleanValue(sectionName, "IsSpectator", pHouseInfo.IsSpectator);
                 spawnIni.SetIntValue(sectionName, "Color", pHouseInfo.ColorIndex);
