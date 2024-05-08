@@ -1,0 +1,16 @@
+stages:
+  - build
+
+build-job:
+  stage: build
+  tags:
+    - windows
+  script:
+    - ./Scripts/build.ps1 -Games ES
+  artifacts:
+    untracked: false
+    when: on_success
+    access: developer
+    expire_in: 1 week
+    paths:
+      - ./Compiled/ES
