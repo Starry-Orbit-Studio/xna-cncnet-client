@@ -1,4 +1,4 @@
-﻿using ClientCore;
+using ClientCore;
 using ClientCore.Extensions;
 using Rampastring.Tools;
 using System;
@@ -17,7 +17,7 @@ namespace DTAClient.Domain.Multiplayer
             Initialize();
         }
 
-        private const string BASE_INI_PATH = "INI/Map Code/";
+        private static readonly string BASE_INI_PATH = SafePath.CombineDirectoryPath(ClientConfiguration.Instance.ConfigFileDirectory, "Map Code");
         private const string SPAWN_INI_OPTIONS_SECTION = "ForcedSpawnIniOptions";
 
         /// <summary>
