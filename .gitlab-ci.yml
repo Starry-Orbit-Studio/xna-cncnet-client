@@ -6,6 +6,7 @@ build-job:
   tags:
     - windows
   script:
+    - dotnet nuget update source GitLab --username gitlab-ci-token --password $CI_JOB_TOKEN --store-password-in-clear-text
     - ./Scripts/build.ps1 -Games ES
   artifacts:
     untracked: false
