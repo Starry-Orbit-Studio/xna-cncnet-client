@@ -42,6 +42,7 @@ namespace DTAConfig.OptionPanels
         private XNAClientCheckBox chkBackBufferInVRAM;
         private XNAClientPreferredItemDropDown ddClientResolution;
         private XNAClientCheckBox chkBorderlessClient;
+        private XNAClientCheckBox chkIntegerScaledClient;
         private XNAClientDropDown ddClientTheme;
         private XNAClientDropDown ddTranslation;
 
@@ -86,7 +87,7 @@ namespace DTAConfig.OptionPanels
                 var maximumIngameResolution = new ScreenResolution(ClientConfiguration.Instance.MaximumIngameWidth, ClientConfiguration.Instance.MaximumIngameHeight);
 
 #if XNA
-                if (!ScreenResolution.HiDefLimitResolution.Fit(maximumIngameResolution))
+                if (!ScreenResolution.HiDefLimitResolution.Fits(maximumIngameResolution))
                     maximumIngameResolution = ScreenResolution.HiDefLimitResolution;
 #endif
 
@@ -224,18 +225,36 @@ namespace DTAConfig.OptionPanels
             chkBorderlessClient.CheckedChanged += ChkBorderlessMenu_CheckedChanged;
             chkBorderlessClient.Checked = true;
 
+            chkIntegerScaledClient = new XNAClientCheckBox(WindowManager);
+            chkIntegerScaledClient.Name = nameof(chkIntegerScaledClient);
+            chkIntegerScaledClient.ClientRectangle = new Rectangle(
+                lblClientResolution.X,
+                lblRenderer.Y, 0, 0);
+            chkIntegerScaledClient.Text = "Integer Scaled Client".L10N("Client:DTAConfig:IntegerScaledClient");
+            chkIntegerScaledClient.Checked = IniSettings.IntegerScaledClient.Value;
+            chkIntegerScaledClient.ToolTipText =
+                """
+                Enable integer scaling for the client. This will cause the client to use
+                the closest fitting resolution that is required to maintain sharp graphics,
+                at the expense of black borders that may appear at some resolutions.
+
+                Additionally, enabling this option will also allow the client window 
+                to be resized (does not affect the selected client resolution).
+                """
+                .L10N("Client:DTAConfig:IntegerScaledClientToolTip");
+
             var lblClientTheme = new XNALabel(WindowManager);
             lblClientTheme.Name = "lblClientTheme";
             lblClientTheme.ClientRectangle = new Rectangle(
                 lblClientResolution.X,
-                lblRenderer.Y, 0, 0);
+                chkWindowedMode.Y, 0, 0);
             lblClientTheme.Text = "Client Theme:".L10N("Client:DTAConfig:ClientTheme");
 
             ddClientTheme = new XNAClientDropDown(WindowManager);
             ddClientTheme.Name = "ddClientTheme";
             ddClientTheme.ClientRectangle = new Rectangle(
                 ddClientResolution.X,
-                ddRenderer.Y,
+                chkWindowedMode.Y,
                 ddClientResolution.Width,
                 ddRenderer.Height);
 
@@ -326,6 +345,7 @@ namespace DTAConfig.OptionPanels
             AddChild(chkBorderlessWindowedMode);
             AddChild(chkBackBufferInVRAM);
             AddChild(chkBorderlessClient);
+            AddChild(chkIntegerScaledClient);
             AddChild(lblClientTheme);
             AddChild(ddClientTheme);
             AddChild(lblTranslation);
@@ -402,10 +422,10 @@ namespace DTAConfig.OptionPanels
                 string defaultGame = ClientConfiguration.Instance.LocalGame;
 
                 var messageBox = XNAMessageBox.ShowYesNoDialog(WindowManager, "New Compatibility Fix".L10N("Client:DTAConfig:TSFixTitle"),
-                    string.Format("A performance-enhancing compatibility fix for modern Windows versions\n" +
+                    string.Format(("A performance-enhancing compatibility fix for modern Windows versions\n" +
                         "has been included in this version of {0}. Enabling it requires\n" +
                         "administrative priveleges. Would you like to install the compatibility fix?\n\n" +
-                        "You'll always be able to install or uninstall the compatibility fix later from the options menu.".L10N("Client:DTAConfig:TSFixText"),
+                        "You'll always be able to install or uninstall the compatibility fix later from the options menu.").L10N("Client:DTAConfig:TSFixTextV2"),
                         defaultGame));
                 messageBox.YesClickedAction = MessageBox_YesClicked;
                 messageBox.NoClickedAction = MessageBox_NoClicked;
@@ -769,12 +789,19 @@ namespace DTAConfig.OptionPanels
                 clientRes.Height != IniSettings.ClientResolutionY.Value)
                 restartRequired = true;
 
+            // TODO: since DTAConfig must not rely on DXMainClient, we can't notify the client to dynamically change the resolution or togging borderless windowed mode. Thus, we need to restart the client as a workaround.
+
             (IniSettings.ClientResolutionX.Value, IniSettings.ClientResolutionY.Value) = clientRes;
 
             if (IniSettings.BorderlessWindowedClient.Value != chkBorderlessClient.Checked)
                 restartRequired = true;
 
             IniSettings.BorderlessWindowedClient.Value = chkBorderlessClient.Checked;
+
+            if (IniSettings.IntegerScaledClient.Value != chkIntegerScaledClient.Checked)
+                restartRequired = true;
+
+            IniSettings.IntegerScaledClient.Value = chkIntegerScaledClient.Checked;
 
             restartRequired = restartRequired || IniSettings.ClientTheme != (string)ddClientTheme.SelectedItem.Tag;
 
@@ -784,8 +811,10 @@ namespace DTAConfig.OptionPanels
 
             IniSettings.Translation.Value = (string)ddTranslation.SelectedItem.Tag;
 
+            ClientConfiguration.Instance.RefreshTranslationGameFiles();
+
             // copy translation files to the game directory
-            foreach (TranslationGameFile tgf in ClientConfiguration.Instance.TranslationGameFiles)
+            foreach (var tgf in ClientConfiguration.Instance.TranslationGameFiles)
             {
                 string sourcePath = SafePath.CombineFilePath(IniSettings.TranslationFolderPath, tgf.Source);
                 string targetPath = SafePath.CombineFilePath(ProgramConstants.GamePath, tgf.Target);
@@ -796,12 +825,18 @@ namespace DTAConfig.OptionPanels
                     string destinationHash = Utilities.CalculateSHA1ForFile(targetPath);
 
                     if (sourceHash != destinationHash)
-                        File.Copy(sourcePath, targetPath, true);
+                    {
+                        FileHelper.CreateHardLinkFromSource(sourcePath, targetPath);
+                        new FileInfo(targetPath).IsReadOnly = true;
+                    }
                 }
                 else
                 {
                     if (File.Exists(targetPath))
+                    {
+                        new FileInfo(targetPath).IsReadOnly = false;
                         File.Delete(targetPath);
+                    }
                 }
             }
 
@@ -853,7 +888,12 @@ namespace DTAConfig.OptionPanels
             {
                 string languageDllDestinationPath = SafePath.CombineFilePath(ProgramConstants.GamePath, "Language.dll");
 
-                SafePath.DeleteFileIfExists(languageDllDestinationPath);
+                FileInfo fileInfo = SafePath.GetFile(languageDllDestinationPath);
+                if (fileInfo.Exists)
+                {
+                    fileInfo.IsReadOnly = false;
+                    fileInfo.Delete();
+                }
 
                 if (ingameRes.Width >= 1024 && ingameRes.Height >= 720)
                     System.IO.File.Copy(SafePath.CombineFilePath(ProgramConstants.GamePath, "Resources", "language_1024x720.dll"), languageDllDestinationPath);

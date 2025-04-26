@@ -6,6 +6,7 @@ using System.IO;
 using System.Reflection;
 using Rampastring.Tools;
 using SixLabors.ImageSharp;
+using ClientCore.Extensions;
 
 namespace ClientCore.CnCNet5
 {
@@ -83,7 +84,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-dta-games",
                     InternalName = "dta",
                     RegistryInstallPath = "HKCU\\Software\\TheDawnOfTheTiberiumAge",
-                    UIName = "Dawn of the Tiberium Age",
+                    UIName = "Dawn of the Tiberium Age".L10N("Client:ClientCore:DawnoftheTiberiumAge"),
                     Texture = AssetLoader.TextureFromImage(dtaIcon)
                 },
 
@@ -94,7 +95,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-ti-games",
                     InternalName = "ti",
                     RegistryInstallPath = "HKCU\\Software\\TwistedInsurrection",
-                    UIName = "Twisted Insurrection",
+                    UIName = "Twisted Insurrection".L10N("Client:ClientCore:TwistedInsurrection"),
                     Texture = AssetLoader.TextureFromImage(tiIcon)
                 },
 
@@ -105,7 +106,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-mo-games",
                     InternalName = "mo",
                     RegistryInstallPath = "HKCU\\Software\\MentalOmega",
-                    UIName = "Mental Omega",
+                    UIName = "Mental Omega".L10N("Client:ClientCore:MentalOmega"),
                     Texture = AssetLoader.TextureFromImage(moIcon)
                 },
 #endif
@@ -117,7 +118,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#redres-games",
                     InternalName = "rr",
                     RegistryInstallPath = "HKLM\\Software\\RedResurrection",
-                    UIName = "YR Red-Resurrection",
+                    UIName = "YR Red-Resurrection".L10N("Client:ClientCore:YRRedResurrection"),
                     Texture = AssetLoader.TextureFromImage(rrIcon)
                 },
 
@@ -128,7 +129,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#rote-games",
                     InternalName = "re",
                     RegistryInstallPath = "HKLM\\Software\\RiseoftheEast",
-                    UIName = "Rise of the East",
+                    UIName = "Rise of the East".L10N("Client:ClientCore:RiseoftheEast"),
                     Texture = AssetLoader.TextureFromImage(reIcon)
                 },
 
@@ -139,7 +140,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncreloaded-games",
                     InternalName = "cncr",
                     RegistryInstallPath = "HKCU\\Software\\CnCReloaded",
-                    UIName = "C&C: Reloaded",
+                    UIName = "C&C: Reloaded".L10N("Client:ClientCore:CnCReloaded"),
                     Texture = AssetLoader.TextureFromImage(cncrIcon)
                 },
 
@@ -150,7 +151,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-td-games",
                     InternalName = "td",
                     RegistryInstallPath = "HKLM\\Software\\Westwood\\Tiberian Dawn",
-                    UIName = "Tiberian Dawn",
+                    UIName = "Tiberian Dawn".L10N("Client:ClientCore:TiberianDawn"),
                     Texture = AssetLoader.TextureFromImage(tdIcon),
                     Supported = false
                 },
@@ -162,7 +163,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-ra-games",
                     InternalName = "ra",
                     RegistryInstallPath = "HKLM\\Software\\Westwood\\Red Alert",
-                    UIName = "Red Alert",
+                    UIName = "Red Alert".L10N("Client:ClientCore:RedAlert"),
                     Texture = AssetLoader.TextureFromImage(raIcon),
                     Supported = false
                 },
@@ -174,7 +175,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-d2k-games",
                     InternalName = "d2k",
                     RegistryInstallPath = "HKLM\\Software\\Westwood\\Dune 2000",
-                    UIName = "Dune 2000",
+                    UIName = "Dune 2000".L10N("Client:ClientCore:Dune2000"),
                     Texture = AssetLoader.TextureFromImage(d2kIcon),
                     Supported = false
                 },
@@ -186,7 +187,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-ts-games",
                     InternalName = "ts",
                     RegistryInstallPath = "HKLM\\Software\\Westwood\\Tiberian Sun",
-                    UIName = "Tiberian Sun",
+                    UIName = "Tiberian Sun".L10N("Client:ClientCore:TiberianSun"),
                     Texture = AssetLoader.TextureFromImage(tsIcon)
                 },
 #endif
@@ -197,7 +198,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-yr-games",
                     InternalName = "yr",
                     RegistryInstallPath = "HKLM\\Software\\Westwood\\Yuri's Revenge",
-                    UIName = "Yuri's Revenge",
+                    UIName = "Yuri's Revenge".L10N("Client:ClientCore:YurisRevenge"),
                     Texture = AssetLoader.TextureFromImage(yrIcon)
                 },
 #if !ES
@@ -208,7 +209,7 @@ namespace ClientCore.CnCNet5
                     GameBroadcastChannel = "#cncnet-ss-games",
                     InternalName = "ss",
                     RegistryInstallPath = "HKLM\\Software\\Westwood\\Sole Survivor",
-                    UIName = "Sole Survivor",
+                    UIName = "Sole Survivor".L10N("Client:ClientCore:SoleSurvivor"),
                     Texture = AssetLoader.TextureFromImage(ssIcon),
                     Supported = false
                 }
@@ -222,7 +223,7 @@ namespace ClientCore.CnCNet5
                 {
                     ChatChannel = "#cncnet",
                     InternalName = "cncnet",
-                    UIName = "General CnCNet Chat",
+                    UIName = "General CnCNet Chat".L10N("Client:ClientCore:GeneralCnCNetChat"),
                     AlwaysEnabled = true,
                     Texture = AssetLoader.TextureFromImage(cncnetIcon)
                 }

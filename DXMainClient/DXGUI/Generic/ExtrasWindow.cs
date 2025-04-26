@@ -86,7 +86,7 @@ namespace DTAClient.DXGUI.Generic
 
         private void BtnExCredits_LeftClick(object sender, EventArgs e)
         {
-            ProcessLauncher.StartShellProcess(MainClientConstants.CREDITS_URL);
+            ProcessLauncher.StartShellProcess(ClientConfiguration.Instance.CreditsURL);
         }
 
         private void BtnExCancel_LeftClick(object sender, EventArgs e)

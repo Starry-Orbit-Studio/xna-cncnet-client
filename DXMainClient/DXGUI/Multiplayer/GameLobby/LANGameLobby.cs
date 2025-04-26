@@ -17,6 +17,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using DTAClient.DXGUI.Multiplayer.CnCNet;
 
 
 namespace DTAClient.DXGUI.Multiplayer.GameLobby
@@ -43,8 +44,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         public const string PING = "PING";
 
         public LANGameLobby(WindowManager windowManager, string iniName,
-            TopBar topBar, LANColor[] chatColors, MapLoader mapLoader, DiscordHandler discordHandler) :
-            base(windowManager, iniName, topBar, mapLoader, discordHandler)
+            TopBar topBar, LANColor[] chatColors, MapLoader mapLoader, DiscordHandler discordHandler, PrivateMessagingWindow pmWindow) :
+            base(windowManager, iniName, topBar, mapLoader, discordHandler, pmWindow)
         {
             this.chatColors = chatColors;
             encoding = Encoding.UTF8;
@@ -90,8 +91,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 AddNotice(string.Format("{0} has modified game files! They could be cheating!".L10N("Client:Main:PlayerModifiedFiles"), sender));
 
             PlayerInfo pInfo = Players.Find(p => p.Name == sender);
+            if (pInfo == null)
+                return;
 
-            pInfo.Verified = true;
+            pInfo.HashReceived = true;
             CopyPlayerDataToUI();
         }
 
@@ -150,7 +153,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 this.client.GetStream().Flush();
 
                 var fhc = new FileHashCalculator();
-                fhc.CalculateHashes(GameModeMaps.GameModes);
+                fhc.CalculateHashes();
                 localFileHash = fhc.GetCompleteHash();
 
                 RefreshMapSelectionUI();
@@ -171,7 +174,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         public void PostJoin()
         {
             var fhc = new FileHashCalculator();
-            fhc.CalculateHashes(GameModeMaps.GameModes);
+            fhc.CalculateHashes();
             SendMessageToHost(FILE_HASH_COMMAND + " " + fhc.GetCompleteHash());
             ResetAutoReadyCheckbox();
         }
@@ -494,7 +497,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 sb.Append(pInfo.ColorId);
                 sb.Append(pInfo.StartingLocation);
                 sb.Append(pInfo.TeamId);
-                if (pInfo.AutoReady && !pInfo.IsInGame)
+                if (pInfo.AutoReady && !pInfo.IsInGame && !LastMapChangeWasInvalid)
                     sb.Append(2);
                 else
                     sb.Append(Convert.ToInt32(pInfo.IsAI || pInfo.Ready));
@@ -833,6 +836,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (color < 0 || color > MPColors.Count)
                 return;
 
+            var disallowedSides = GetDisallowedSides();
+
+            if (side > 0 && side <= SideCount && disallowedSides[side - 1])
+                return;
+
             if (Map.CoopInfo != null)
             {
                 if (Map.CoopInfo.DisallowedPlayerSides.Contains(side - 1) || side == SideCount + RandomSelectorCount)
@@ -943,6 +951,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
 
             CopyPlayerDataToUI();
+
             localPlayer = FindLocalPlayer();
             if (localPlayer != null && oldSideId != localPlayer.SideId)
                 UpdateDiscordPresence();

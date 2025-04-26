@@ -16,10 +16,12 @@ namespace ClientCore
         private const string SETTINGS = "Settings";
         private const string LINKS = "Links";
         private const string TRANSLATIONS = "Translations";
+        private const string USER_DEFAULTS = "UserDefaults";
 
         private const string CLIENT_SETTINGS = "DTACnCNetClient.ini";
         private const string GAME_OPTIONS = "GameOptions.ini";
         private const string CLIENT_DEFS = "ClientDefinitions.ini";
+        private const string NETWORK_DEFS_LOCAL = "NetworkDefinitions.local.ini";
         private const string NETWORK_DEFS = "NetworkDefinitions.ini";
 
         private static ClientConfiguration _instance;
@@ -53,7 +55,19 @@ namespace ClientCore
 
             gameOptions_ini = new IniFile(SafePath.CombineFilePath(baseResourceDirectory.FullName, GAME_OPTIONS));
 
-            networkDefinitionsIni = new IniFile(SafePath.CombineFilePath(ProgramConstants.GetResourcePath(), NETWORK_DEFS));
+            string networkDefsPathLocal = SafePath.CombineFilePath(ProgramConstants.GetResourcePath(), NETWORK_DEFS_LOCAL);
+            if (File.Exists(networkDefsPathLocal))
+            {
+                networkDefinitionsIni = new IniFile(networkDefsPathLocal);
+                Logger.Log("Loaded network definitions from NetworkDefinitions.local.ini (user override)");
+            }
+            else
+            {
+                string networkDefsPath = SafePath.CombineFilePath(ProgramConstants.GetResourcePath(), NETWORK_DEFS);
+                networkDefinitionsIni = new IniFile(networkDefsPath);
+            }
+
+            RefreshTranslationGameFiles();
         }
 
         /// <summary>
@@ -205,7 +219,8 @@ namespace ClientCore
 
         public int MaximumRenderHeight => clientDefinitionsIni.GetIntValue(SETTINGS, "MaximumRenderHeight", 800);
 
-        public string[] RecommendedResolutions => clientDefinitionsIni.GetStringValue(SETTINGS, "RecommendedResolutions", "1280x720,2560x1440,3840x2160").Split(',');
+        public string[] RecommendedResolutions => clientDefinitionsIni.GetStringValue(SETTINGS, "RecommendedResolutions",
+            $"{MinimumRenderWidth}x{MinimumRenderHeight},{MaximumRenderWidth}x{MaximumRenderHeight}").Split(',');
 
         public string WindowTitle => clientDefinitionsIni.GetStringValue(SETTINGS, "WindowTitle", string.Empty)
             .L10N("INI:ClientDefinitions:WindowTitle");
@@ -226,13 +241,13 @@ namespace ClientCore
 
         public string LongGameName => clientDefinitionsIni.GetStringValue(SETTINGS, "LongGameName", "Tiberian Sun");
 
-        public string LongSupportURL => clientDefinitionsIni.GetStringValue(SETTINGS, "LongSupportURL", "http://www.moddb.com/members/rampastring");
+        public string LongSupportURL => clientDefinitionsIni.GetStringValue(SETTINGS, "LongSupportURL", "https://www.moddb.com/members/rampastring");
 
         public string ShortSupportURL => clientDefinitionsIni.GetStringValue(SETTINGS, "ShortSupportURL", "www.moddb.com/members/rampastring");
 
-        public string ChangelogURL => clientDefinitionsIni.GetStringValue(SETTINGS, "ChangelogURL", "http://www.moddb.com/mods/the-dawn-of-the-tiberium-age/tutorials/change-log");
+        public string ChangelogURL => clientDefinitionsIni.GetStringValue(SETTINGS, "ChangelogURL", "https://www.moddb.com/mods/the-dawn-of-the-tiberium-age/tutorials/change-log");
 
-        public string CreditsURL => clientDefinitionsIni.GetStringValue(SETTINGS, "CreditsURL", "http://www.moddb.com/mods/the-dawn-of-the-tiberium-age/tutorials/credits#Rampastring");
+        public string CreditsURL => clientDefinitionsIni.GetStringValue(SETTINGS, "CreditsURL", "https://www.moddb.com/mods/the-dawn-of-the-tiberium-age/tutorials/credits#Rampastring");
 
         public string ManualDownloadURL => clientDefinitionsIni.GetStringValue(SETTINGS, "ManualDownloadURL", string.Empty);
 
@@ -291,7 +306,15 @@ namespace ClientCore
 
         private List<TranslationGameFile> _translationGameFiles;
 
-        public List<TranslationGameFile> TranslationGameFiles => _translationGameFiles ??= ParseTranslationGameFiles();
+        public List<TranslationGameFile> TranslationGameFiles => _translationGameFiles;
+
+        /// <summary>
+        /// Force a refresh of the translation game files list.
+        /// </summary>
+        public void RefreshTranslationGameFiles()
+        {
+            _translationGameFiles = ParseTranslationGameFiles();
+        }
 
         /// <summary>
         /// Looks up the list of files to try and copy into the game folder with a translation.
@@ -348,6 +371,10 @@ namespace ClientCore
 
         public string AllowedCustomGameModes => clientDefinitionsIni.GetStringValue(SETTINGS, "AllowedCustomGameModes", "Standard,Custom Map");
 
+        public string SkillLevelOptions => clientDefinitionsIni.GetStringValue(SETTINGS, "SkillLevelOptions", "Any,Beginner,Intermediate,Pro");
+        
+        public int DefaultSkillLevelIndex => clientDefinitionsIni.GetIntValue(SETTINGS, "DefaultSkillLevelIndex", 0);
+        
         public string GetGameExecutableName()
         {
             string[] exeNames = clientDefinitionsIni.GetStringValue(SETTINGS, "GameExecutableNames", "Game.exe").Split(',');
@@ -407,21 +434,55 @@ namespace ClientCore
         /// </summary>
         public bool DisallowJoiningIncompatibleGames => clientDefinitionsIni.GetBooleanValue(SETTINGS, nameof(DisallowJoiningIncompatibleGames), false);
 
+        /// <summary>
+        /// Activates warnings for development builds of XNA Client
+        /// </summary>
+        public bool ShowDevelopmentBuildWarnings => clientDefinitionsIni.GetBooleanValue(SETTINGS, nameof(ShowDevelopmentBuildWarnings), true);
+
         #endregion
 
         #region Network definitions
 
-        public string CnCNetTunnelListURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetTunnelListURL", "http://cncnet.org/master-list");
+        public string CnCNetTunnelListURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetTunnelListURL", "https://cncnet.org/master-list");
 
-        public string CnCNetPlayerCountURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetPlayerCountURL", "http://api.cncnet.org/status");
+        public string CnCNetPlayerCountURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetPlayerCountURL", "https://api.cncnet.org/status");
 
-        public string CnCNetMapDBDownloadURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetMapDBDownloadURL", "http://mapdb.cncnet.org");
+        public string CnCNetMapDBDownloadURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetMapDBDownloadURL", "https://mapdb.cncnet.org");
 
-        public string CnCNetMapDBUploadURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetMapDBUploadURL", "http://mapdb.cncnet.org/upload");
+        public string CnCNetMapDBUploadURL => networkDefinitionsIni.GetStringValue(SETTINGS, "CnCNetMapDBUploadURL", "https://mapdb.cncnet.org/upload");
 
         public bool DisableDiscordIntegration => networkDefinitionsIni.GetBooleanValue(SETTINGS, "DisableDiscordIntegration", false);
 
         public List<string> IRCServers => GetIRCServers();
+
+        #endregion
+
+        #region User default settings
+
+        public bool UserDefault_BorderlessWindowedClient => clientDefinitionsIni.GetBooleanValue(USER_DEFAULTS, "BorderlessWindowedClient", false);
+
+        public bool UserDefault_IntegerScaledClient => clientDefinitionsIni.GetBooleanValue(USER_DEFAULTS, "IntegerScaledClient", false);
+
+        public bool UserDefault_WriteInstallationPathToRegistry => clientDefinitionsIni.GetBooleanValue(USER_DEFAULTS, "WriteInstallationPathToRegistry", true);
+
+        #endregion
+
+        #region Game networking defaults
+
+        /// <summary>
+        /// Default value for FrameSendRate setting written in spawn.ini.
+        /// </summary>
+        public int DefaultFrameSendRate => clientDefinitionsIni.GetIntValue(SETTINGS, nameof(DefaultFrameSendRate), 7);
+
+        /// <summary>
+        /// Default value for Protocol setting written in spawn.ini.
+        /// </summary>
+        public int DefaultProtocolVersion => clientDefinitionsIni.GetIntValue(SETTINGS, nameof(DefaultProtocolVersion), 2);
+
+        /// <summary>
+        /// Default value for MaxAhead setting written in spawn.ini.
+        /// </summary>
+        public int DefaultMaxAhead => clientDefinitionsIni.GetIntValue(SETTINGS, nameof(DefaultMaxAhead), 0);
 
         #endregion
 
