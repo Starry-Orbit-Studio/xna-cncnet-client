@@ -423,7 +423,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                         "Reading data from the server failed (0 bytes received)! Server address: {0}", hostEndPoint.Address.ToString()));
 
                     string localizedMessage = string.Format(
-                        "Reading data from the server failed (0 bytes received)! Server address : {0}".L10N("Client:Main:LanServerReadZero"),
+                        "Reading data from the server failed (0 bytes received)! Server address: {0}".L10N("Client:Main:LanServerReadZero"),
                          hostEndPoint.Address.ToString());
 
                     LeaveGame(localizedMessage);
