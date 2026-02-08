@@ -92,7 +92,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 new StringCommandHandler(DICE_ROLL_MESSAGE, HandleDiceRollResult),
                 new NoParamCommandHandler(CHEAT_DETECTED_MESSAGE, HandleCheatDetectedMessage),
                 new StringCommandHandler(CHANGE_TUNNEL_SERVER_MESSAGE, HandleTunnelServerChangeMessage),
-                new StringCommandHandler("GSETTINGS", ApplyGameLobbySettings)
+                new StringCommandHandler("GSETTINGS", ApplyGameLobbySettings),
+                new IntCommandHandler("COMLVL", new Action<string, int>(HandlePlayerCommanderLevel)),
             };
 
             MapSharer.MapDownloadFailed += MapSharer_MapDownloadFailed;
@@ -749,6 +750,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (!IsHost)
             {
                 CopyPlayerDataToUI();
+                if (e.User.IRCUser.Name == ProgramConstants.PLAYERNAME)
+                    SendMyLevelToHost();
                 return;
             }
 
@@ -765,6 +768,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             else
             {
                 Players[0].Ready = true;
+                Players[0].Com_Level = UserINISettings.Instance.CommanderLevel;
                 CopyPlayerDataToUI();
             }
 
@@ -877,6 +881,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     sb.Append(";");
                     sb.Append(tunnelHandler.CurrentTunnel.Address + ":");
                     sb.Append(playerPorts[pId]);
+                    sb.Append(";");
+                    sb.Append(Players[pId].Com_Level);
                 }
                 channel.SendCTCPMessage(sb.ToString(), QueuedMessageType.SYSTEM_MESSAGE, 10);
             }
@@ -1517,11 +1523,16 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             var recentPlayers = new List<string>();
 
-            for (int i = 1; i < parts.Length; i += 2)
+            for (int i = 1; i < parts.Length; i += 3)
             {
-                if (parts.Length <= i + 1)
+                if (parts.Length <= i + 2)
                     return;
 
+                PlayerInfo pInfo = Players.Find(p => p.Name == parts[i]);
+
+                if (pInfo == null)
+                    return;
+                    
                 string pName = parts[i];
                 string[] ipAndPort = parts[i + 1].Split(':');
 
@@ -1552,13 +1563,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     }
                 }
 
-                PlayerInfo pInfo = Players.Find(p => p.Name == pName);
+                success = int.TryParse(parts[i + 2], out var ComLvl);
 
-                if (pInfo == null)
+                if (!success)
                     return;
 
                 pInfo.Port = port;
-                recentPlayers.Add(pName);
+                pInfo.Com_Level = ComLvl;
+                recentPlayers.Add(pInfo.Name);
             }
             cncnetUserData.AddRecentPlayers(recentPlayers, gameRoomName);
 
@@ -1756,6 +1768,28 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 return;
 
             AddNotice(string.Format("Player {0} has different files compared to the game host. Either {0} or the game host could be cheating.".L10N("Client:Main:DifferentFileCheating"), cheaterName), Color.Red);
+        }
+
+        private void SendMyLevelToHost()
+        {
+            var sb = new StringBuilder("COMLVL ");
+
+            sb.Append(UserINISettings.Instance.CommanderLevel);
+
+            channel.SendCTCPMessage(sb.ToString(), QueuedMessageType.GAME_PLAYERS_MESSAGE, 15);
+        }
+
+        private void HandlePlayerCommanderLevel(string playerName, int command)
+        {
+            if (!IsHost)
+                return;
+
+            var pInfo = Players.Find(p => p.Name == playerName);
+
+            if (pInfo == null)
+                return;
+
+            pInfo.Com_Level = command;
         }
 
         protected override void BroadcastDiceRoll(int dieSides, int[] results)

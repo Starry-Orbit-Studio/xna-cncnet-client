@@ -1616,6 +1616,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             settings.SetIntValue("Side", houseInfos[myIndex].InternalSideIndex);
             settings.SetBooleanValue("IsSpectator", houseInfos[myIndex].IsSpectator);
             settings.SetIntValue("Color", houseInfos[myIndex].ColorIndex);
+            settings.SetIntValue("Level", Players[myIndex].Com_Level);
             settings.SetStringValue("CustomLoadScreen", LoadingScreenController.GetLoadScreenName(houseInfos[myIndex].InternalSideIndex.ToString()));
             settings.SetIntValue("AIPlayers", AIPlayers.Count);
             settings.SetIntValue("Seed", RandomSeed);
@@ -1673,6 +1674,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 spawnIni.SetIntValue(sectionName, "Color", pHouseInfo.ColorIndex);
                 spawnIni.SetStringValue(sectionName, "Ip", GetIPAddressForPlayer(pInfo));
                 spawnIni.SetIntValue(sectionName, "Port", pInfo.Port);
+                spawnIni.SetIntValue(sectionName, "Level", pInfo.Com_Level);
 
                 otherId++;
             }
