@@ -142,6 +142,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private Random random;
 
+        private bool ctcpInvalidGameMessageShown = false;
+        private bool ctcpNoTunnelMessageShown = false;
+        private bool ctcpNoTunnelForGamesMessageShown = false;
+
         private void GameList_ClientRectangleUpdated(object sender, EventArgs e)
         {
             panelGameFilters.ClientRectangle = lbGameList.ClientRectangle;
@@ -1378,6 +1382,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             lbChatMessages.TopIndex = 0;
             lbChatMessages.Clear();
+            OnChatMessagesCleared();
             currentChatChannel.Messages.ForEach(msg => AddMessageToChat(msg));
 
             RefreshPlayerList(this, EventArgs.Empty);
@@ -1435,6 +1440,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 item.Texture = unknownGameIcon;
             else
                 item.Texture = gameCollection.GameList[ircUser.GameID].Texture;
+        }
+
+        private void OnChatMessagesCleared()
+        {
+            ctcpInvalidGameMessageShown = false;
+            ctcpNoTunnelMessageShown = false;
+            ctcpNoTunnelForGamesMessageShown = false;
         }
 
         private void AddMessageToChat(ChatMessage message)
@@ -1509,16 +1521,15 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 Logger.Log("Ignoring CTCP game message because of an invalid amount of parameters.");
 
                 // Remind users that the network is good but the client is outdated or newer
-                if (lbGameList.Items.Count == 0 && lbGameList.HostedGames.Count == 0)
+                if (lbGameList.Items.Count == 0 && lbGameList.HostedGames.Count == 0 && !ctcpInvalidGameMessageShown)
                 {
+                    ctcpInvalidGameMessageShown = true;
+
                     string message = ("There are no games listed but you are indeed connected. The client did receive a game message but can't add it to the list because the message is invalid. " +
                         "You can ignore this prompt if there are games listed later. " +
                         "Otherwise, this usually means that your client is outdated, or, in a rare case, newer than others. Please check for updates.").L10N("Client:Main:InvalidGameMessage");
 
-                    if ((lbChatMessages.Items.LastOrDefault()?.Tag as ChatMessage)?.Message != message)
-                    {
-                        lbChatMessages.AddMessage(new ChatMessage(Color.Gray, message));
-                    }
+                    lbChatMessages.AddMessage(new ChatMessage(Color.Gray, message));
                 }
 
                 return;
@@ -1563,15 +1574,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                     Logger.Log("Ignoring CTCP game message because there are no tunnels at all. Available tunnel count: 0. Is the connection to CnCNet HTTP service broken?");
 
                     // Remind users that the game is ignored because of no tunnel
-                    if (lbGameList.Items.Count == 0 && lbGameList.HostedGames.Count == 0)
+                    if (lbGameList.Items.Count == 0 && lbGameList.HostedGames.Count == 0 && !ctcpNoTunnelMessageShown)
                     {
+                        ctcpNoTunnelMessageShown = true;
                         string message = ("There are no games listed. The client did receive a valid game message but can't add it to the list because there are no available tunnels. " +
                             "You can ignore this prompt if there are games listed later. Otherwise, it might indicate a network problem to CnCNet HTTP service.").L10N("Client:Main:NoTunnels");
 
-                        if ((lbChatMessages.Items.LastOrDefault()?.Tag as ChatMessage)?.Message != message)
-                        {
-                            lbChatMessages.AddMessage(new ChatMessage(Color.Gray, message));
-                        }
+                        lbChatMessages.AddMessage(new ChatMessage(Color.Gray, message));
                     }
 
                     return;
@@ -1585,15 +1594,14 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                         tunnelAddress, tunnelPort, tunnelHandler.Tunnels.Count));
 
                     // Remind users that the game is ignored because of no specified tunnel
-                    if (lbGameList.Items.Count == 0 && lbGameList.HostedGames.Count == 0)
+                    if (lbGameList.Items.Count == 0 && lbGameList.HostedGames.Count == 0 && !ctcpNoTunnelForGamesMessageShown)
                     {
+                        ctcpNoTunnelForGamesMessageShown = true;
+
                         string message = string.Format(("There are no games listed. The client did receive a valid game message but can't add it to the list because the specified tunnel is not available. " +
                             "You can ignore this prompt if there are games listed later. Otherwise, please contact support at {0}.").L10N("Client:Main:NoTunnelForGames"), ClientConfiguration.Instance.LongSupportURL);
 
-                        if ((lbChatMessages.Items.LastOrDefault()?.Tag as ChatMessage)?.Message != message)
-                        {
-                            lbChatMessages.AddMessage(new ChatMessage(Color.Gray, message));
-                        }
+                        lbChatMessages.AddMessage(new ChatMessage(Color.Gray, message));
                     }
 
                     return;
