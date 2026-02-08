@@ -1,4 +1,4 @@
-﻿using Rampastring.Tools;
+using Rampastring.Tools;
 using System;
 
 namespace DTAClient.Domain.Multiplayer
@@ -29,6 +29,7 @@ namespace DTAClient.Domain.Multiplayer
         public int StartingLocation { get; set; }
         public int ColorId { get; set; }
         public int TeamId { get; set; }
+        public int Com_Level { get; set; } // Commander level
         public bool Ready { get; set; }
         public bool AutoReady { get; set; }
         public bool IsAI { get; set; }
