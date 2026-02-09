@@ -643,7 +643,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 PlayerInfo player = Players[index];
                 player.Name = e.User.Name;
-                ddPlayerNames[index].Items[0].Text = player.Name;
+                ddPlayerNames[index].Items[0].Text = GetPlayerDisplayName(player);
                 AddNotice(string.Format("Player {0} changed their name to {1}".L10N("Client:Main:PlayerRename"), e.OldUserName, e.User.Name));
             }
         }
@@ -1790,6 +1790,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 return;
 
             pInfo.Com_Level = command;
+            CopyPlayerDataToUI();
         }
 
         protected override void BroadcastDiceRoll(int dieSides, int[] results)

@@ -2252,7 +2252,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 pInfo.Index = pId;
 
                 XNADropDown ddPlayerName = ddPlayerNames[pId];
-                ddPlayerName.Items[0].Text = pInfo.Name;
+                ddPlayerName.Items[0].Text = GetPlayerDisplayName(pInfo);
                 ddPlayerName.Items[1].Text = string.Empty;
                 ddPlayerName.Items[2].Text = "Kick".L10N("Client:Main:Kick");
                 ddPlayerName.Items[3].Text = "Ban".L10N("Client:Main:Ban");
@@ -2344,6 +2344,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             CheckDisallowedSides();
 
             PlayerUpdatingInProgress = false;
+        }
+
+        protected string GetPlayerDisplayName(PlayerInfo pInfo)
+        {
+            return $"[{pInfo.Com_Level}] {pInfo.Name}";
         }
 
         /// <summary>
