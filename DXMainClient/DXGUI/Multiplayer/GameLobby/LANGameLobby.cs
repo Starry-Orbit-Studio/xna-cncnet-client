@@ -7,6 +7,7 @@ using DTAClient.DXGUI.Generic;
 using DTAClient.DXGUI.Multiplayer.GameLobby.CommandHandlers;
 using DTAClient.Online;
 using ClientCore.Extensions;
+using ClientGUI;
 using Microsoft.Xna.Framework;
 using Rampastring.Tools;
 using Rampastring.XNAUI;
@@ -620,7 +621,31 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected override void UpdatePlayerPingIndicator(PlayerInfo pInfo)
         {
-            // TODO Implement pings for LAN lobbies
+            XNAClientDropDown ddPlayerName = ddPlayerNames[pInfo.Index];
+            
+            int level = pInfo.Com_Level;
+            string tooltipText;
+            
+            if (pInfo.Name == ProgramConstants.PLAYERNAME)
+            {
+                int currentExperience = UserINISettings.Instance.CommanderExperience.Value;
+                int nextLevelXP = 0;
+                if (level < ClientCore.Statistics.GameParsers.LogFileStatisticsParser.LEVEL_XP_REQUIREMENTS.Length)
+                {
+                    nextLevelXP = ClientCore.Statistics.GameParsers.LogFileStatisticsParser.LEVEL_XP_REQUIREMENTS[level];
+                }
+                
+                if (nextLevelXP > 0)
+                    tooltipText = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1} ({currentExperience}/{nextLevelXP} XP)";
+                else
+                    tooltipText = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1} ({currentExperience} XP)";
+            }
+            else
+            {
+                tooltipText = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1}";
+            }
+            
+            ddPlayerName.ToolTip.Text = tooltipText;
         }
 
         /// <summary>
