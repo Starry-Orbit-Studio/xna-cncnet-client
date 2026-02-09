@@ -484,7 +484,9 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             Players.Clear();
             AIPlayers.Clear();
 
-            Players.Add(new PlayerInfo(ProgramConstants.PLAYERNAME, 0, 0, 0, 0));
+            var player = new PlayerInfo(ProgramConstants.PLAYERNAME, 0, 0, 0, 0);
+            player.Com_Level = UserINISettings.Instance.CommanderLevel;
+            Players.Add(player);
             PlayerInfo aiPlayer = new PlayerInfo(ProgramConstants.AI_PLAYER_NAMES[0], 0, 0, 0, 0);
             aiPlayer.IsAI = true;
             aiPlayer.AILevel = 0;
