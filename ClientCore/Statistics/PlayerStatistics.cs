@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 
 namespace ClientCore.Statistics
@@ -34,6 +34,7 @@ namespace ClientCore.Statistics
         public bool IsLocalPlayer { get; set; }
         public bool IsAI { get; set; }
         public int Color { get; set; } = 255;
+        public int ExperienceGained { get; set; }
 
         public void Write(Stream stream)
         {

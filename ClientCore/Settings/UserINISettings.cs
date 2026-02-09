@@ -100,6 +100,7 @@ namespace ClientCore
             EnableMapSharing = new BoolSetting(iniFile, MULTIPLAYER, "EnableMapSharing", true);
             AlwaysDisplayTunnelList = new BoolSetting(iniFile, MULTIPLAYER, "AlwaysDisplayTunnelList", false);
             CommanderLevel = new IntSetting(iniFile, MULTIPLAYER, "CommanderLevel", 0);
+            CommanderExperience = new IntSetting(iniFile, MULTIPLAYER, "CommanderExperience", 0);
             MapSortState = new IntSetting(iniFile, MULTIPLAYER, "MapSortState", (int)SortDirection.None);
 
             CheckForUpdates = new BoolSetting(iniFile, OPTIONS, "CheckforUpdates", true);
@@ -208,6 +209,8 @@ namespace ClientCore
         public BoolSetting AlwaysDisplayTunnelList { get; private set; }
 
         public IntSetting CommanderLevel { get; private set; }
+        
+        public IntSetting CommanderExperience { get; private set; }
         
         public IntSetting MapSortState { get; private set; }
 

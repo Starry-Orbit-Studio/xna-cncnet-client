@@ -2056,6 +2056,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     ddPlayerTeams[pId].AllowDropDown = !playerExtraOptions.IsForceRandomTeams && allowPlayerOptionsChange && !Map.IsCoop && !Map.ForceNoTeams && !GameMode.ForceNoTeams;
                     ddPlayerStarts[pId].AllowDropDown = !playerExtraOptions.IsForceRandomStarts && allowPlayerOptionsChange && (Map.IsCoop || !Map.ForceRandomStartLocations && !GameMode.ForceRandomStartLocations);
                 }
+
+                UpdatePlayerTooltip(pInfo);
             }
 
             // AI players
@@ -2090,6 +2092,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     ddPlayerTeams[index].AllowDropDown = !playerExtraOptions.IsForceRandomTeams && allowOptionsChange && !Map.IsCoop && !Map.ForceNoTeams && !GameMode.ForceNoTeams;
                     ddPlayerStarts[index].AllowDropDown = !playerExtraOptions.IsForceRandomStarts && allowOptionsChange && (Map.IsCoop || !Map.ForceRandomStartLocations && !GameMode.ForceRandomStartLocations);
                 }
+
+                UpdatePlayerTooltip(aiInfo);
             }
 
             // Unused player slots
@@ -2129,7 +2133,31 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected string GetPlayerDisplayName(PlayerInfo pInfo)
         {
-            return $"[{pInfo.Com_Level}] {pInfo.Name}";
+            return pInfo.Name;
+        }
+
+        protected virtual void UpdatePlayerTooltip(PlayerInfo pInfo)
+        {
+            XNAClientDropDown ddPlayerName = ddPlayerNames[pInfo.Index];
+            int level = pInfo.Com_Level;
+            if (pInfo.Name == ProgramConstants.PLAYERNAME)
+            {
+                int currentExperience = UserINISettings.Instance.CommanderExperience.Value;
+                int nextLevelXP = 0;
+                if (level < ClientCore.Statistics.GameParsers.LogFileStatisticsParser.LEVEL_XP_REQUIREMENTS.Length)
+                {
+                    nextLevelXP = ClientCore.Statistics.GameParsers.LogFileStatisticsParser.LEVEL_XP_REQUIREMENTS[level];
+                }
+                
+                if (nextLevelXP > 0)
+                    ddPlayerName.ToolTip.Text = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1} ({currentExperience}/{nextLevelXP} XP)";
+                else
+                    ddPlayerName.ToolTip.Text = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1} ({currentExperience} XP)";
+            }
+            else
+            {
+                ddPlayerName.ToolTip.Text = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1}";
+            }
         }
 
         /// <summary>

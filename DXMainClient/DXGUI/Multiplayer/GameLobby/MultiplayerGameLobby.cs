@@ -1071,10 +1071,35 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             XNAClientDropDown ddPlayerName = ddPlayerNames[pInfo.Index];
             ddPlayerName.Items[0].Texture = GetTextureForPing(pInfo.Ping);
-            if (pInfo.Ping < 0)
-                ddPlayerName.ToolTip.Text = "Ping:".L10N("Client:Main:PlayerInfoPing") + " ? " + "ms".L10N("Client:Main:MillisecondsShort");
+            
+            int level = pInfo.Com_Level;
+            string tooltipText;
+            
+            if (pInfo.Name == ProgramConstants.PLAYERNAME)
+            {
+                int currentExperience = UserINISettings.Instance.CommanderExperience.Value;
+                int nextLevelXP = 0;
+                if (level < ClientCore.Statistics.GameParsers.LogFileStatisticsParser.LEVEL_XP_REQUIREMENTS.Length)
+                {
+                    nextLevelXP = ClientCore.Statistics.GameParsers.LogFileStatisticsParser.LEVEL_XP_REQUIREMENTS[level];
+                }
+                
+                if (nextLevelXP > 0)
+                    tooltipText = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1} ({currentExperience}/{nextLevelXP} XP)";
+                else
+                    tooltipText = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1} ({currentExperience} XP)";
+            }
             else
-                ddPlayerName.ToolTip.Text = "Ping:".L10N("Client:Main:PlayerInfoPing") + $" {pInfo.Ping} " + "ms".L10N("Client:Main:MillisecondsShort");
+            {
+                tooltipText = "Level:".L10N("Client:Main:PlayerInfoLevel") + $" {level + 1}";
+            }
+            
+            if (pInfo.Ping < 0)
+                tooltipText += "\n" + "Ping:".L10N("Client:Main:PlayerInfoPing") + " ? " + "ms".L10N("Client:Main:MillisecondsShort");
+            else
+                tooltipText += "\n" + "Ping:".L10N("Client:Main:PlayerInfoPing") + $" {pInfo.Ping} " + "ms".L10N("Client:Main:MillisecondsShort");
+            
+            ddPlayerName.ToolTip.Text = tooltipText;
         }
 
         private Texture2D GetTextureForPing(int ping)
@@ -1092,6 +1117,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 default:
                     return PingTextures[0];
             }
+        }
+
+        protected override void UpdatePlayerTooltip(PlayerInfo pInfo)
+        {
+            UpdatePlayerPingIndicator(pInfo);
         }
 
         protected abstract void BroadcastPlayerOptions();

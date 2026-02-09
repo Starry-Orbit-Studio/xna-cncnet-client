@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Rampastring.Tools;
+using ClientCore;
 
 namespace ClientCore.Statistics.GameParsers
 {
@@ -11,6 +12,25 @@ namespace ClientCore.Statistics.GameParsers
         {
             this.isLoadedGame = isLoadedGame;
         }
+
+        public static readonly int[] LEVEL_XP_REQUIREMENTS = new int[]
+        {
+            5000,   // Level 1 -> 2
+            6000,   // 2 -> 3
+            7500,   // 3 -> 4
+            9000,   // 4 -> 5
+            11000,  // 5 -> 6
+            13500,  // 6 -> 7
+            16000,  // 7 -> 8
+            19500,  // 8 -> 9
+            24000,  // 9 -> 10
+            29500,  // 10 -> 11
+            35000,  // 11 -> 12
+            40000,  // 12 -> 13
+            50000,  // 13 -> 14
+            60000,  // 14 -> 15
+            70000   // 15 -> 16
+        };
 
         private string fileName = "DTA.log";
         private string economyString = "Economy"; // RA2/YR do not have economy stat, but a number of built objects.
@@ -118,8 +138,14 @@ namespace ClientCore.Statistics.GameParsers
                         currentPlayer.Kills = Int32.Parse(line.Substring(8));
                     else if (line.StartsWith("Score = "))
                         currentPlayer.Score = Int32.Parse(line.Substring(8));
-                    else if (line.StartsWith(economyString + " = "))
-                        currentPlayer.Economy = Int32.Parse(line.Substring(economyString.Length + 2));
+                     else if (line.StartsWith(economyString + " = "))
+                         currentPlayer.Economy = Int32.Parse(line.Substring(economyString.Length + 2));
+                     else if (line.StartsWith("XP = "))
+                     {
+                         int xpGained = Int32.Parse(line.Substring(5));
+                         // Update player experience and level
+                         UpdatePlayerExperience(currentPlayer, xpGained);
+                     }
                 }
 
                 // Check empty players for take-over by AIs
@@ -152,6 +178,41 @@ namespace ClientCore.Statistics.GameParsers
             {
                 Logger.Log("DTAStatisticsParser: Error parsing statistics from match! Message: " + ex.ToString());
             }
+        }
+
+        void UpdatePlayerExperience(PlayerStatistics player, int xpGained)
+        {
+            if (!player.IsLocalPlayer)
+                return;
+
+            int currentLevel = UserINISettings.Instance.CommanderLevel.Value;
+            int currentExperience = UserINISettings.Instance.CommanderExperience.Value;
+            
+            int newExperience = currentExperience + xpGained;
+            
+            // Check for level ups
+            int newLevel = currentLevel;
+            while (newLevel < LEVEL_XP_REQUIREMENTS.Length && newExperience >= LEVEL_XP_REQUIREMENTS[newLevel])
+            {
+                newLevel++;
+            }
+            
+            // Update settings if changed
+            if (newLevel != currentLevel)
+            {
+                UserINISettings.Instance.CommanderLevel.Value = newLevel;
+                Logger.Log($"Player leveled up from {currentLevel} to {newLevel}");
+            }
+            
+            UserINISettings.Instance.CommanderExperience.Value = newExperience;
+            
+            // Save settings
+            UserINISettings.Instance.SaveSettings();
+            
+            // Store gained XP in player statistics for display
+            player.ExperienceGained = xpGained;
+            
+            Logger.Log($"Experience updated: +{xpGained} XP, total: {newExperience}, level: {newLevel}");
         }
     }
 }
