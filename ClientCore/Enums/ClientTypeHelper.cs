@@ -12,6 +12,7 @@ namespace ClientCore.Enums
             "YR" => ClientType.YR,
             "Ares" => ClientType.Ares,
             "RA" => ClientType.RA,
+            "ES" => ClientType.ES,
             _ => throw new Exception(string.Format((
                 "It seems the client configuration was not migrated to accommodate for the v2.12 changes. " +
                 "Please specify 'ClientGameType' in '[Settings]' section of the 'ClientDefinitions.ini' file " +
