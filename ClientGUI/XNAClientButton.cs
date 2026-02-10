@@ -162,7 +162,7 @@ namespace ClientGUI
             }
         }
 
-        public override void OnLeftClick()
+        public override void OnLeftClick(InputEventArgs inputEventArgs)
         {
             switch (ActiveMode)
             {
@@ -170,11 +170,11 @@ namespace ClientGUI
                 case ActiveMode.Polygon:
                     var current = CheckActive();
                     if (current)
-                        base.OnLeftClick();
+                        base.OnLeftClick(inputEventArgs);
                     break;
                 case ActiveMode.Normal:
                 default:
-                    base.OnLeftClick();
+                    base.OnLeftClick(inputEventArgs);
                     break;
             }
         }

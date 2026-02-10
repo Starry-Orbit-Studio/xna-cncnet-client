@@ -2,12 +2,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using ClientCore;
-using ClientCore.CnCNet5;
 using ClientCore.I18N;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using ClientCore;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using ClientCore.Extensions;
 

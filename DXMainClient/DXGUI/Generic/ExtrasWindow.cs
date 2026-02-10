@@ -1,12 +1,18 @@
-﻿using ClientCore;
-using ClientGUI;
-using DTAClient.Domain;
-using ClientCore.Extensions;
-using Microsoft.Xna.Framework;
-using Rampastring.XNAUI;
-using Rampastring.Tools;
-using System;
+﻿using System;
 using System.Diagnostics;
+
+using ClientCore;
+using ClientCore.Enums;
+using ClientCore.Extensions;
+
+using ClientGUI;
+
+using DTAClient.Domain;
+
+using Microsoft.Xna.Framework;
+
+using Rampastring.Tools;
+using Rampastring.XNAUI;
 
 namespace DTAClient.DXGUI.Generic
 {
@@ -46,11 +52,10 @@ namespace DTAClient.DXGUI.Generic
             var btnExCancel = new XNAClientButton(WindowManager);
             btnExCancel.Name = nameof(btnExCancel);
             btnExCancel.ClientRectangle = new Rectangle(76, 160, UIDesignConstants.BUTTON_WIDTH_133, UIDesignConstants.BUTTON_HEIGHT);
-#if ES
-            btnExCancel.Text = "Cancel".L10N("Client:Main:ButtonCancelEx");
-#else
-            btnExCancel.Text = "Cancel".L10N("Client:Main:ButtonCancel");
-#endif
+            btnExCancel.Text = ClientConfiguration.Instance.ClientGameType == ClientType.ES
+                ? "Cancel".L10N("Client:Main:ButtonCancelEx")
+                : "Cancel".L10N("Client:Main:ButtonCancel");
+
             btnExCancel.LeftClick += BtnExCancel_LeftClick;
 
             AddChild(btnExStatistics);

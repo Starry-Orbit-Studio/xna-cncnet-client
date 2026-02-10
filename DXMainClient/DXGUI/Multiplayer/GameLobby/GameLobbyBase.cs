@@ -1,23 +1,27 @@
-using ClientCore;
-using ClientCore.Statistics;
-using ClientGUI;
-using DTAClient.Domain;
-using DTAClient.Domain.Multiplayer;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Rampastring.Tools;
-using Rampastring.XNAUI;
-using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+using ClientCore;
 using ClientCore.Enums;
+using ClientCore.Extensions;
+using ClientCore.Statistics;
+
+using ClientGUI;
+
+using DTAClient.Domain;
+using DTAClient.Domain.Multiplayer;
+using DTAClient.DXGUI.Generic;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.Online.EventArguments;
-using ClientCore.Extensions;
 
-using DTAClient.DXGUI.Generic;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+
+using Rampastring.Tools;
+using Rampastring.XNAUI;
+using Rampastring.XNAUI.XNAControls;
 
 using TextCopy;
 
@@ -834,7 +838,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected virtual void ToggleFavoriteMap()
         {
             if (GameModeMap != null)
-            { 
+            {
                 GameModeMap.IsFavorite = UserINISettings.Instance.ToggleFavoriteMap(Map.SHA1, GameMode.Name, GameModeMap.IsFavorite);
                 MapPreviewBox.RefreshFavoriteBtn();
             }
@@ -1425,8 +1429,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         /// </summary>
         protected void CheckDisallowedSides()
         {
-            CheckDisallowedSidesForGroup(forHumanPlayers:false);
-            CheckDisallowedSidesForGroup(forHumanPlayers:true);
+            CheckDisallowedSidesForGroup(forHumanPlayers: false);
+            CheckDisallowedSidesForGroup(forHumanPlayers: true);
         }
 
         /// <summary>
@@ -1549,12 +1553,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 if (i < Players.Count)
                 {
                     pInfo = Players[i];
-                    disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers:true);
+                    disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers: true);
                 }
                 else
                 {
                     pInfo = AIPlayers[i - Players.Count];
-                    disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers:false);
+                    disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers: false);
                 }
 
                 pHouseInfo.RandomizeSide(pInfo, SideCount, pseudoRandom, disallowedSides, RandomSelectors, RandomSelectorCount);
@@ -1661,9 +1665,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
                 spawnIni.SetStringValue(sectionName, "Name", pInfo.Name);
                 spawnIni.SetIntValue(sectionName, "Side", pHouseInfo.InternalSideIndex);
-#if ES
-                spawnIni.SetBooleanValue(sectionName, "IsRandomCountry", houseInfos[myIndex].IsRandomSide);
-#endif
+                if (ClientConfiguration.Instance.ClientGameType == ClientType.ES)
+                {
+                    spawnIni.SetBooleanValue(sectionName, "IsRandomCountry", houseInfos[myIndex].IsRandomSide);
+                }
                 spawnIni.SetBooleanValue(sectionName, "IsSpectator", pHouseInfo.IsSpectator);
                 spawnIni.SetIntValue(sectionName, "Color", pHouseInfo.ColorIndex);
                 spawnIni.SetStringValue(sectionName, "Ip", GetIPAddressForPlayer(pInfo));
@@ -1696,12 +1701,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     spawnIni.SetIntValue("HouseHandicaps", keyName, AIPlayers[aiId].HouseHandicapAILevel);
                     spawnIni.SetIntValue("HouseCountries", keyName, houseInfos[Players.Count + aiId].InternalSideIndex);
                     spawnIni.SetIntValue("HouseColors", keyName, houseInfos[Players.Count + aiId].ColorIndex);
-#if ES
-                    int randomType = 0;
-                    if (houseInfos[Players.Count + aiId].IsRandomSide)
-                        randomType |= 0b0001;
-                    spawnIni.SetIntValue("HouseRandoms", keyName, randomType);
-#endif
+                    if (ClientConfiguration.Instance.ClientGameType == ClientType.ES)
+                    {
+                        int randomType = 0;
+                        if (houseInfos[Players.Count + aiId].IsRandomSide)
+                            randomType |= 0b0001;
+                        spawnIni.SetIntValue("HouseRandoms", keyName, randomType);
+                    }
                 }
             }
 
@@ -2582,7 +2588,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 if (checkBox.AllowScoring)
                     return Rank.None;
             }
-            
+
             foreach (GameLobbyDropDown dropDown in DropDowns)
             {
                 if (dropDown.AllowScoring)
