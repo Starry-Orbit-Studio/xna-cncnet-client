@@ -5,6 +5,9 @@
   <ItemGroup>
     <ProjectReference Include="..\ClientCore\ClientCore.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Rampastring.XNAUI\Rampastring.XNAUI.csproj" />
+  </ItemGroup>
   <ItemGroup Condition="$(Configuration.Contains('GL'))">
     <!--Remove WinForm-->
     <Compile Remove="IME\WinFormsIMEHandler.cs" />

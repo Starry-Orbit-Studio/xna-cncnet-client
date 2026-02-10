@@ -1,5 +1,4 @@
 using ClientCore;
-using ClientCore.CnCNet5;
 using ClientGUI;
 using ClientGUI.IME;
 using DTAClient.Domain;
@@ -15,12 +14,12 @@ using System.Diagnostics;
 using System.IO;
 using DTAClient.Domain.Multiplayer;
 using DTAClient.Domain.Multiplayer.CnCNet;
+using DTAClient.DXGUI.Campaign;
 using DTAClient.DXGUI.Multiplayer;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
 using DTAClient.Online;
-using DTAConfig;
-using DTAConfig.Settings;
+using ClientGUI.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rampastring.XNAUI.XNAControls;
@@ -148,18 +147,6 @@ namespace DTAClient.DXGUI
 
             wm.ControlINIAttributeParsers.Add(new TranslationINIParser());
 
-            MainClientConstants.DisplayErrorAction = (title, error, exit) =>
-            {
-                new XNAMessageBox(wm, title, error, XNAMessageBoxButtons.OK)
-                {
-                    OKClickedAction = _ =>
-                    {
-                        if (exit)
-                            Environment.Exit(1);
-                    }
-                }.Show();
-            };
-
             SetGraphicsMode(wm);
 
 #if WINFORMS
@@ -244,6 +231,15 @@ namespace DTAClient.DXGUI
                 (wm.RenderResolutionY - ls.Height) / 2, ls.Width, ls.Height);
         }
 
+        private static Random GetRandom()
+        {
+            var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+            byte[] intBytes = new byte[sizeof(int)];
+            rng.GetBytes(intBytes);
+            int seed = BitConverter.ToInt32(intBytes, 0);
+            return new Random(seed);
+        }
+
         private IServiceProvider BuildServiceProvider(WindowManager windowManager)
         {
             // Create host - this allows for things like DependencyInjection
@@ -261,7 +257,9 @@ namespace DTAClient.DXGUI
                             .AddSingleton<TunnelHandler>()
                             .AddSingleton<DiscordHandler>()
                             .AddSingleton<PrivateMessageHandler>()
-                            .AddSingleton<MapLoader>();
+                            .AddSingleton<MapLoader>()
+                            .AddSingleton<Random>(GetRandom())
+                            .AddSingleton<DirectDrawWrapperManager>();
 
                         // singleton xna controls - same instance on each request
                         services
@@ -279,7 +277,14 @@ namespace DTAClient.DXGUI
                             .AddSingletonXnaControl<MainMenu>()
                             .AddSingletonXnaControl<MapPreviewBox>()
                             .AddSingletonXnaControl<GameLaunchButton>()
-                            .AddSingletonXnaControl<PlayerExtraOptionsPanel>();
+                            .AddSingletonXnaControl<PlayerExtraOptionsPanel>()
+                            .AddSingletonXnaControl<CampaignSelector>()
+                            .AddSingletonXnaControl<GameLoadingWindow>()
+                            .AddSingletonXnaControl<StatisticsWindow>()
+                            .AddSingletonXnaControl<UpdateQueryWindow>()
+                            .AddSingletonXnaControl<ManualUpdateQueryWindow>()
+                            .AddSingletonXnaControl<UpdateWindow>()
+                            .AddSingletonXnaControl<ExtrasWindow>();
 
                         // transient xna controls - new instance on each request
                         services
@@ -306,6 +311,8 @@ namespace DTAClient.DXGUI
                             .AddTransientXnaControl<ChatListBox>()
                             .AddTransientXnaControl<GameLobbyCheckBox>()
                             .AddTransientXnaControl<GameLobbyDropDown>()
+                            .AddTransientXnaControl<CampaignCheckBox>()
+                            .AddTransientXnaControl<CampaignDropDown>()
                             .AddTransientXnaControl<SettingCheckBox>()
                             .AddTransientXnaControl<SettingDropDown>()
                             .AddTransientXnaControl<FileSettingCheckBox>()

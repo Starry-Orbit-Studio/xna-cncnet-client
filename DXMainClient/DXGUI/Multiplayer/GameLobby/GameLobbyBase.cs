@@ -1,4 +1,4 @@
-﻿using ClientCore;
+using ClientCore;
 using ClientCore.Statistics;
 using ClientGUI;
 using DTAClient.Domain;
@@ -16,7 +16,11 @@ using ClientCore.Enums;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.Online.EventArguments;
 using ClientCore.Extensions;
+
+using DTAClient.DXGUI.Generic;
+
 using TextCopy;
+
 
 namespace DTAClient.DXGUI.Multiplayer.GameLobby
 {
@@ -26,6 +30,22 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
     /// </summary>
     public abstract class GameLobbyBase : INItializableWindow
     {
+        protected record Rank
+        {
+            private readonly int rank;
+
+            public static readonly Rank None = 0;
+            public static readonly Rank Easy = 1;
+            public static readonly Rank Medium = 2;
+            public static readonly Rank Hard = 3;
+
+            private Rank(int rank) => this.rank = rank;
+
+            public static implicit operator int(Rank value) => value.rank;
+
+            public static implicit operator Rank(int value) => new Rank(value);
+        }
+
         protected const int MAX_PLAYER_COUNT = 8;
         protected const int PLAYER_OPTION_VERTICAL_MARGIN = 12;
         protected const int PLAYER_OPTION_HORIZONTAL_MARGIN = 3;
@@ -36,11 +56,6 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected readonly string BTN_LAUNCH_NOT_READY = "Not Ready".L10N("Client:Main:ButtonNotReady");
 
         private readonly string FavoriteMapsLabel = "Favorite Maps".L10N("Client:Main:FavoriteMaps");
-
-        private const int RANK_NONE = 0;
-        private const int RANK_EASY = 1;
-        private const int RANK_MEDIUM = 2;
-        private const int RANK_HARD = 3;
 
         /// <summary>
         /// Creates a new instance of the game lobby base.
@@ -55,23 +70,27 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             string iniName,
             MapLoader mapLoader,
             bool isMultiplayer,
-            DiscordHandler discordHandler
+            DiscordHandler discordHandler,
+            Random random
         ) : base(windowManager)
         {
             _iniSectionName = iniName;
             MapLoader = mapLoader;
             this.isMultiplayer = isMultiplayer;
             this.discordHandler = discordHandler;
+            this.random = random;
         }
 
         private string _iniSectionName;
+
+        private Random random;
 
         protected XNAPanel PlayerOptionsPanel;
 
         protected List<MultiplayerColor> MPColors;
 
-        public List<GameLobbyCheckBox> CheckBoxes = new List<GameLobbyCheckBox>();
-        public List<GameLobbyDropDown> DropDowns = new List<GameLobbyDropDown>();
+        public List<GameLobbyCheckBox> CheckBoxes { get; } = new();
+        public List<GameLobbyDropDown> DropDowns { get; } = new();
 
         protected DiscordHandler discordHandler;
 
@@ -106,7 +125,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected XNAClientDropDown[] ddPlayerNames;
         protected XNAClientDropDown[] ddPlayerSides;
-        protected XNAClientDropDown[] ddPlayerColors;
+        protected XNAClientColorDropDown[] ddPlayerColors;
         protected XNAClientDropDown[] ddPlayerStarts;
         protected XNAClientDropDown[] ddPlayerTeams;
 
@@ -133,6 +152,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected XNAClientStateButton<SortDirection> btnMapSortAlphabetically;
 
         protected XNASuggestionTextBox tbMapSearch;
+        protected XNAContextMenu searchContextMenu;
+        private XNAContextMenuItem searchCurrentModeItem;
+        private XNAContextMenuItem searchAllModesItem;
+        private bool searchAllGameModes = false;
 
         protected List<PlayerInfo> Players = new List<PlayerInfo>();
         protected List<PlayerInfo> AIPlayers = new List<PlayerInfo>();
@@ -154,6 +177,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected int UniqueGameID { get; set; }
         protected int SideCount { get; private set; }
         protected int RandomSelectorCount { get; private set; } = 1;
+
+        /// <summary>
+        /// The maximum number of players allowed in this lobby.
+        /// </summary>
+        protected virtual int MaxPlayerCount => MAX_PLAYER_COUNT;
 
         protected List<int[]> RandomSelectors = new List<int[]>();
 
@@ -198,7 +226,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             MPColors = MultiplayerColor.LoadColors();
 
-            GameOptionsIni = new IniFile(SafePath.CombineFilePath(ProgramConstants.GetBaseResourcePath(), "GameOptions.ini"));
+            GameOptionsIni = new IniFile(SafePath.CombineFilePath(ProgramConstants.GetBaseResourcePath(), ClientConfiguration.GAME_OPTIONS));
 
             base.Initialize();
 
@@ -208,8 +236,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
             catch (Exception ex)
             {
-                throw new Exception(string.Format("It seems the client configuration was not migrated to accomodate for the 'Tiberian Sun Client v6 Changes'.\n\nPlease refer to {0} for more details.\n\nError message: {1}".L10N("Client:Main:NotMigratedClientException"),
-                                                  "https://github.com/CnCNet/xna-cncnet-client/blob/122b2de962afc404e203290d0618363d83c4264a/Docs/Migration-INI.md",
+                throw new Exception(string.Format(("It seems the client configuration was not migrated to accommodate " +
+                                                   "for the 'Tiberian Sun Client v6 Changes'.\n\n" +
+                                                   "Please refer to documentation of the client {0} for more details. This link can also be found in the log file.\n\n" +
+                                                   "Error message: {1}").L10N("Client:Main:NotMigratedClientException"),
+                                                   "https://github.com/CnCNet/xna-cncnet-client/",
                                                    ex.Message));
             }
 
@@ -255,6 +286,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             mapContextMenu.AddItem("Delete Map".L10N("Client:Main:DeleteMap"),
                 selectAction: DeleteMapConfirmation,
                 visibilityChecker: CanDeleteMap);
+            mapContextMenu.AddItem("Show in folder".L10N("Client:Main:ShowInFolder"),
+                selectAction: ShowInFolder);
 
             AddChild(mapContextMenu);
 
@@ -282,6 +315,31 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             tbMapSearch = FindChild<XNASuggestionTextBox>(nameof(tbMapSearch));
             tbMapSearch.InputReceived += TbMapSearch_InputReceived;
+            tbMapSearch.RightClick += TbMapSearch_RightClick;
+
+            searchContextMenu = new XNAContextMenu(WindowManager);
+            searchContextMenu.Name = nameof(searchContextMenu);
+            searchContextMenu.Width = 150;
+
+            searchCurrentModeItem = new XNAContextMenuItem()
+            {
+                Text = "Search current mode".L10N("Client:Main:SearchCurrentMode"),
+                SelectAction = () => SetSearchAllGameModes(false),
+                HintTextGenerator = () => !searchAllGameModes ? "< " : null
+            };
+            searchContextMenu.AddItem(searchCurrentModeItem);
+
+            searchAllModesItem = new XNAContextMenuItem()
+            {
+                Text = "Search all modes".L10N("Client:Main:SearchAllModes"),
+                SelectAction = () => SetSearchAllGameModes(true),
+                HintTextGenerator = () => searchAllGameModes ? "< " : null
+            };
+            searchContextMenu.AddItem(searchAllModesItem);
+            searchAllGameModes = UserINISettings.Instance.SearchAllGameModes.Value;
+
+            AddChild(searchContextMenu);
+
 
             btnPickRandomMap = FindChild<XNAClientButton>(nameof(btnPickRandomMap));
             btnPickRandomMap.LeftClick += BtnPickRandomMap_LeftClick;
@@ -315,6 +373,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             // Allow repositioning / disabling in INI.
             ReadINIForControl(btnMapSortAlphabetically);
+
+            MapLoader.MapChanged += MapLoader_MapChanged;
         }
 
         private void InitializeGameOptionPresetUI()
@@ -366,6 +426,90 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             if (Enum.IsDefined(typeof(SortDirection), UserINISettings.Instance.MapSortState.Value))
                 btnMapSortAlphabetically.SetState((SortDirection)UserINISettings.Instance.MapSortState.Value);
+        }
+
+        private void MapLoader_MapChanged(object sender, MapChangedEventArgs e)
+        {
+            WindowManager.AddCallback(() =>
+            {
+                switch (e.ChangeType)
+                {
+                    case MapChangeType.Added:
+                        HandleMapAdded(e.Map);
+                        break;
+                    case MapChangeType.Updated:
+                        HandleMapUpdated(e.Map, e.PreviousMapSHA1);
+                        break;
+                    case MapChangeType.Removed:
+                        HandleMapRemoved(e.Map);
+                        break;
+                }
+            }, null);
+        }
+
+        protected virtual void HandleMapAdded(Map addedMap)
+        {
+            RefreshGameModeFilter();
+
+            if (ShouldShowMapInCurrentFilter(addedMap))
+                ListMaps();
+        }
+
+        protected virtual void HandleMapUpdated(Map updatedMap, string previousSHA1)
+        {
+            // If the currently selected map was updated, refresh the UI
+            if (Map != null && (Map.SHA1 == previousSHA1 || Map.SHA1 == updatedMap.SHA1))
+            {
+                // Find the new GameModeMap for the updated map
+                var updatedGameModeMap = GameModeMaps
+                    .FirstOrDefault(gmm => gmm.Map.SHA1 == updatedMap.SHA1);
+
+                if (updatedGameModeMap != null)
+                    ChangeMap(updatedGameModeMap);
+            }
+
+            ListMaps();
+        }
+
+        private void HandleMapRemoved(Map removedMap)
+        {
+            // If the currently selected map was removed, select a different one
+            if (Map != null && Map.SHA1 == removedMap.SHA1)
+            {
+                var availableMaps = GameModeMaps.Where(gmm => gmm.GameMode == GameMode).ToList();
+                if (availableMaps.Any())
+                {
+                    ChangeMap(availableMaps.First());
+                }
+                else
+                {
+                    // No maps available for current game mode, change to a different one
+                    var firstAvailableGameModeMap = GameModeMaps.FirstOrDefault();
+                    if (firstAvailableGameModeMap != null)
+                    {
+                        ChangeMap(firstAvailableGameModeMap);
+                        RefreshMapSelectionUI();
+                    }
+                }
+            }
+
+            RefreshGameModeFilter();
+            ListMaps();
+        }
+
+        private bool ShouldShowMapInCurrentFilter(Map map)
+        {
+            if (map?.GameModes == null || gameModeMapFilter == null)
+                return false;
+
+            return map.GameModes.Any(gameModeName =>
+            {
+                var gameMode = MapLoader.GameModes.FirstOrDefault(gm => gm.Name == gameModeName);
+                if (gameMode == null) return false;
+
+                return gameModeMapFilter.GetGameModeMaps().Any(gmm =>
+                    gmm.GameMode.Name == gameMode.Name && gmm.Map.SHA1 == map.SHA1);
+            });
         }
 
         private static XNADropDownItem CreateGameFilterItem(string text, GameModeMapFilter filter)
@@ -423,6 +567,16 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private void BtnPickRandomMap_LeftClick(object sender, EventArgs e) => PickRandomMap();
 
         private void TbMapSearch_InputReceived(object sender, EventArgs e) => ListMaps();
+
+        private void TbMapSearch_RightClick(object sender, EventArgs e) => searchContextMenu.Open(GetCursorPoint());
+
+        private void SetSearchAllGameModes(bool value)
+        {
+            searchAllGameModes = value;
+            UserINISettings.Instance.SearchAllGameModes.Value = value;
+            UserINISettings.Instance.SaveSettings();
+            ListMaps();
+        }
 
         private void Dropdown_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -507,7 +661,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected List<GameModeMap> GetSortedGameModeMaps()
         {
-            var gameModeMaps = gameModeMapFilter.GetGameModeMaps();
+            var gameModeMaps = searchAllGameModes ? GameModeMaps.ToList() : gameModeMapFilter.GetGameModeMaps();
 
             // Only apply sort if the map list sort button is available.
             if (btnMapSortAlphabetically.Enabled && btnMapSortAlphabetically.Visible)
@@ -536,32 +690,56 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             lbGameModeMapList.SelectedIndex = -1;
 
             int mapIndex = -1;
-            int skippedMapsCount = 0;
 
             var isFavoriteMapsSelected = IsFavoriteMapsSelected();
             var maps = GetSortedGameModeMaps();
 
             bool gameModeMapChanged = false;
 
-            for (int i = 0; i < maps.Count; i++)
-            {
-                var gameModeMap = maps[i];
-                if (tbMapSearch.Text != tbMapSearch.Suggestion)
-                {
-                    string promptUpper = tbMapSearch.Text.ToUpperInvariant();
-                    bool mapMatches = gameModeMap.Map.Name.ToUpperInvariant().Contains(promptUpper)
-                        || gameModeMap.Map.UntranslatedName.ToUpperInvariant().Contains(promptUpper);
+            List<GameModeMap> filteredMaps;
 
-                    if (!mapMatches)
-                    {
-                        skippedMapsCount++;
-                        continue;
-                    }
-                }
+            if (tbMapSearch.Text != tbMapSearch.Suggestion)
+            {
+                string search = tbMapSearch.Text.Trim();
+                string[] searchWords = search.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Equals entire search string
+                var exactMatches = maps.Where(gmm =>
+                    gmm.Map.Name.Equals(search, StringComparison.CurrentCultureIgnoreCase) ||
+                    gmm.Map.UntranslatedName.Equals(search, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+                // Contains entire search string
+                var substringMatches = maps.Except(exactMatches).Where(gmm =>
+                    gmm.Map.Name.Contains(search, StringComparison.CurrentCultureIgnoreCase) ||
+                    gmm.Map.UntranslatedName.Contains(search, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+                // Contains all search words. It matches with "AND" logic: Word1 AND Word2 AND Word3
+                var multiWordMatches = maps.Except(exactMatches).Except(substringMatches).Where(gmm =>
+                {
+                    bool allInTranslated = searchWords.All(word =>
+                        gmm.Map.Name.Contains(word, StringComparison.CurrentCultureIgnoreCase));
+
+                    bool allInUntranslated = searchWords.All(word =>
+                        gmm.Map.UntranslatedName.Contains(word, StringComparison.InvariantCultureIgnoreCase));
+
+                    return allInTranslated || allInUntranslated;
+                }).ToList();
+
+                filteredMaps = [.. exactMatches, .. substringMatches, .. multiWordMatches];
+            }
+            else
+            {
+                filteredMaps = maps;
+            }
+
+            for (int i = 0; i < filteredMaps.Count; i++)
+            {
+                var gameModeMap = filteredMaps[i];
 
                 XNAListBoxItem rankItem = new XNAListBoxItem();
                 if (gameModeMap.Map.IsCoop)
                 {
+                    // Note: StatisticsManager.Statistics must be initialized to call `HasBeatCoOpMap()`. This means StatisticsWindow must be initialized before any lobbies extending GameLobbyBase.
                     if (StatisticsManager.Instance.HasBeatCoOpMap(gameModeMap.Map.UntranslatedName, gameModeMap.GameMode.UntranslatedUIName))
                         rankItem.Texture = RankTextures[Math.Abs(2 - gameModeMap.GameMode.CoopDifficultyLevel) + 1];
                     else
@@ -572,7 +750,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
                 XNAListBoxItem mapNameItem = new XNAListBoxItem();
                 var mapNameText = gameModeMap.Map.Name;
-                if (isFavoriteMapsSelected)
+                if (isFavoriteMapsSelected || searchAllGameModes)
                     mapNameText += $" - {gameModeMap.GameMode.UIName}";
 
                 mapNameItem.Text = Renderer.GetSafeString(mapNameText, lbGameModeMapList.FontIndex);
@@ -591,14 +769,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 // Preserve the selected map
                 if (gameModeMap == GameModeMap)
                 {
-                    mapIndex = i - skippedMapsCount;
+                    mapIndex = i;
                     gameModeMapChanged = false;
                 }
 
-                // Preserve the selected map, even if the game mode has changed
                 if (mapIndex == -1 && (gameModeMap?.Map?.Equals(GameModeMap?.Map) ?? false))
                 {
-                    mapIndex = i - skippedMapsCount;
+                    mapIndex = i;
                     gameModeMapChanged = true;
                 }
             }
@@ -649,6 +826,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             messageBox.YesClickedAction = DeleteSelectedMap;
         }
 
+        private void ShowInFolder() => Map?.OpenContainingFolder();
+
         private void MapPreviewBox_ToggleFavorite(object sender, EventArgs e) =>
             ToggleFavoriteMap();
 
@@ -656,7 +835,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             if (GameModeMap != null)
             { 
-                GameModeMap.IsFavorite = UserINISettings.Instance.ToggleFavoriteMap(Map.UntranslatedName, GameMode.Name, GameModeMap.IsFavorite);
+                GameModeMap.IsFavorite = UserINISettings.Instance.ToggleFavoriteMap(Map.SHA1, GameMode.Name, GameModeMap.IsFavorite);
                 MapPreviewBox.RefreshFavoriteBtn();
             }
         }
@@ -745,10 +924,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (maps.Count < 1)
                 return;
 
-            int random = new Random().Next(0, maps.Count);
+            int randomValue = random.Next(0, maps.Count);
             bool isFavoriteMapsSelected = IsFavoriteMapsSelected();
-            GameModeMap = GameModeMaps.Find(gmm => (gmm.GameMode == GameMode || gmm.IsFavorite && isFavoriteMapsSelected) && gmm.Map == maps[random]);
-            Logger.Log("PickRandomMap: Rolled " + random + " out of " + maps.Count + ". Picked map: " + Map.Name);
+            GameModeMap = GameModeMaps.Find(gmm => (gmm.GameMode == GameMode || gmm.IsFavorite && isFavoriteMapsSelected) && gmm.Map == maps[randomValue]);
+            Logger.Log("PickRandomMap: Rolled " + randomValue + " out of " + maps.Count + ". Picked map: " + Map.Name);
 
             ChangeMap(GameModeMap);
             tbMapSearch.Text = string.Empty;
@@ -770,6 +949,27 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
 
             return maps;
+        }
+
+        /// <summary>
+        /// Refreshes the game mode filter dropdown to include all current game modes.
+        /// </summary>
+        protected void RefreshGameModeFilter()
+        {
+            string currentSelection = ddGameModeMapFilter.SelectedItem?.Text;
+
+            ddGameModeMapFilter.SelectedIndexChanged -= DdGameModeMapFilter_SelectedIndexChanged;
+            ddGameModeMapFilter.Items.Clear();
+
+            ddGameModeMapFilter.AddItem(CreateGameFilterItem(FavoriteMapsLabel, new GameModeMapFilter(GetFavoriteGameModeMaps)));
+            foreach (GameMode gm in GameModeMaps.GameModes)
+                ddGameModeMapFilter.AddItem(CreateGameFilterItem(gm.UIName, new GameModeMapFilter(GetGameModeMaps(gm))));
+
+            int selectedIndex = ddGameModeMapFilter.Items.FindIndex(i => i.Text == currentSelection);
+            ddGameModeMapFilter.SelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
+
+            ddGameModeMapFilter.SelectedIndexChanged += DdGameModeMapFilter_SelectedIndexChanged;
+            gameModeMapFilter = ddGameModeMapFilter.SelectedItem.Tag as GameModeMapFilter;
         }
 
         /// <summary>
@@ -810,7 +1010,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             ddPlayerNames = new XNAClientDropDown[MAX_PLAYER_COUNT];
             ddPlayerSides = new XNAClientDropDown[MAX_PLAYER_COUNT];
-            ddPlayerColors = new XNAClientDropDown[MAX_PLAYER_COUNT];
+            ddPlayerColors = new XNAClientColorDropDown[MAX_PLAYER_COUNT];
             ddPlayerStarts = new XNAClientDropDown[MAX_PLAYER_COUNT];
             ddPlayerTeams = new XNAClientDropDown[MAX_PLAYER_COUNT];
 
@@ -870,7 +1070,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 ddPlayerSide.SelectedIndexChanged += CopyPlayerDataFromUI;
                 ddPlayerSide.Tag = true;
 
-                var ddPlayerColor = new XNAClientDropDown(WindowManager);
+                var ddPlayerColor = new XNAClientColorDropDown(WindowManager);
                 ddPlayerColor.Name = "ddPlayerColor" + i;
                 ddPlayerColor.ClientRectangle = new Rectangle(
                     ddPlayerSide.Right + playerOptionHorizontalMargin,
@@ -944,6 +1144,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (btnPlayerExtraOptionsOpen != null)
             {
                 PlayerExtraOptionsPanel = FindChild<PlayerExtraOptionsPanel>(nameof(PlayerExtraOptionsPanel));
+
+                foreach (var child in PlayerExtraOptionsPanel.Children)
+                {
+                    ReadINIForControl(child);
+                }
+
                 PlayerExtraOptionsPanel.Disable();
                 PlayerExtraOptionsPanel.OptionsChanged += PlayerExtraOptions_OptionsChanged;
                 btnPlayerExtraOptionsOpen.LeftClick += BtnPlayerExtraOptions_LeftClick;
@@ -1031,8 +1237,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 List<int> randomSides = new List<int>();
                 try
                 {
-                    string[] tmp = GameOptionsIni.GetStringValue("RandomSelectors", randomSelector, string.Empty).Split(',');
-                    randomSides = Array.ConvertAll(tmp, int.Parse).Distinct().ToList();
+                    string[] tmp = GameOptionsIni.GetStringListValue("RandomSelectors", randomSelector, string.Empty);
+                    randomSides = Array.ConvertAll(tmp, int.Parse).ToList();
                     randomSides.RemoveAll(x => (x >= SideCount || x < 0));
                 }
                 catch (FormatException) { }
@@ -1332,7 +1538,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             // Randomize options
 
-            Random random = new Random(RandomSeed);
+            Random pseudoRandom = new Random(RandomSeed);
 
             for (int i = 0; i < totalPlayerCount; i++)
             {
@@ -1351,10 +1557,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers:false);
                 }
 
-                pHouseInfo.RandomizeSide(pInfo, SideCount, random, disallowedSides, RandomSelectors, RandomSelectorCount);
+                pHouseInfo.RandomizeSide(pInfo, SideCount, pseudoRandom, disallowedSides, RandomSelectors, RandomSelectorCount);
 
-                pHouseInfo.RandomizeColor(pInfo, freeColors, MPColors, random);
-                pHouseInfo.RandomizeStart(pInfo, random, freeStartingLocations, takenStartingLocations, teamStartMappings.Any());
+                pHouseInfo.RandomizeColor(pInfo, freeColors, MPColors, pseudoRandom);
+                pHouseInfo.RandomizeStart(pInfo, pseudoRandom, freeStartingLocations, takenStartingLocations, teamStartMappings.Any());
             }
 
             return houseInfos;
@@ -1417,7 +1623,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             WriteSpawnIniAdditions(spawnIni);
 
             foreach (GameLobbyCheckBox chkBox in CheckBoxes)
-                chkBox.ApplySpawnINICode(spawnIni);
+                chkBox.ApplySpawnIniCode(spawnIni);
 
             foreach (GameLobbyDropDown dd in DropDowns)
                 dd.ApplySpawnIniCode(spawnIni);
@@ -1600,8 +1806,15 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             bool isValidForStar = true;
             foreach (GameLobbyCheckBox checkBox in CheckBoxes)
             {
-                if ((checkBox.MapScoringMode == CheckBoxMapScoringMode.DenyWhenChecked && checkBox.Checked) ||
-                    (checkBox.MapScoringMode == CheckBoxMapScoringMode.DenyWhenUnchecked && !checkBox.Checked))
+                if (!checkBox.AllowScoring)
+                {
+                    isValidForStar = false;
+                    break;
+                }
+            }
+            foreach (GameLobbyDropDown dropDown in DropDowns)
+            {
+                if (!dropDown.AllowScoring)
                 {
                     isValidForStar = false;
                     break;
@@ -1890,7 +2103,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             Logger.Log("GameProcessExited: Parsing statistics.");
 
-            matchStatistics.ParseStatistics(ProgramConstants.GamePath, ClientConfiguration.Instance.LocalGame, false);
+            matchStatistics?.ParseStatistics(ProgramConstants.GamePath, ClientConfiguration.Instance.LocalGame, false);
 
             Logger.Log("GameProcessExited: Adding match to statistics.");
 
@@ -1949,7 +2162,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
 
             AIPlayers.Clear();
-            for (int cmbId = Players.Count; cmbId < 8; cmbId++)
+            for (int cmbId = Players.Count; cmbId < MaxPlayerCount; cmbId++)
             {
                 XNADropDown dd = ddPlayerNames[cmbId];
                 dd.Items[0].Text = "-";
@@ -2231,7 +2444,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             // Enable all colors by default
             foreach (var ddColor in ddPlayerColors)
             {
-                ddColor.Items.ForEach(item => item.Selectable = true);
+                for (int i = 0; i < ddColor.Items.Count; i++)
+                {
+                    ddColor.Items[i].Selectable = true;
+                    ddColor.SetItemColorEnabled(i, true);
+                }
             }
 
             // Apply starting locations
@@ -2247,8 +2464,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
 
             // Check if AI players allowed
-            bool AIAllowed = !(Map.MultiplayerOnly || GameMode.MultiplayerOnly) ||
-                             !(Map.HumanPlayersOnly || GameMode.HumanPlayersOnly);
+            bool AIAllowed = !(Map.HumanPlayersOnly || GameMode.HumanPlayersOnly);
             foreach (var ddName in ddPlayerNames)
             {
                 if (ddName.Items.Count > 3)
@@ -2280,8 +2496,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     if (disallowedColorIndex >= MPColors.Count)
                         continue;
 
-                    foreach (XNADropDown ddColor in ddPlayerColors)
+                    foreach (var ddColor in ddPlayerColors)
+                    {
                         ddColor.Items[disallowedColorIndex + 1].Selectable = false;
+                        ddColor.SetItemColorEnabled(disallowedColorIndex + 1, false);
+                    }
 
                     foreach (PlayerInfo pInfo in concatPlayerList)
                     {
@@ -2353,27 +2572,30 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             return GameType.TeamGame;
         }
 
-        protected int GetRank()
+        protected Rank GetRank()
         {
             if (GameMode == null || Map == null)
-                return RANK_NONE;
+                return Rank.None;
 
             foreach (GameLobbyCheckBox checkBox in CheckBoxes)
             {
-                if ((checkBox.MapScoringMode == CheckBoxMapScoringMode.DenyWhenChecked && checkBox.Checked) ||
-                    (checkBox.MapScoringMode == CheckBoxMapScoringMode.DenyWhenUnchecked && !checkBox.Checked))
-                {
-                    return RANK_NONE;
-                }
+                if (checkBox.AllowScoring)
+                    return Rank.None;
+            }
+            
+            foreach (GameLobbyDropDown dropDown in DropDowns)
+            {
+                if (dropDown.AllowScoring)
+                    return Rank.None;
             }
 
             PlayerInfo localPlayer = Players.Find(p => p.Name == ProgramConstants.PLAYERNAME);
 
             if (localPlayer == null)
-                return RANK_NONE;
+                return Rank.None;
 
             if (IsPlayerSpectator(localPlayer))
-                return RANK_NONE;
+                return Rank.None;
 
             // These variables are used by both the skirmish and multiplayer code paths
             int[] teamMemberCounts = new int[5];
@@ -2399,7 +2621,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (isMultiplayer)
             {
                 if (Players.Count == 1)
-                    return RANK_NONE;
+                    return Rank.None;
 
                 // PvP stars for 2-player and 3-player maps
                 if (Map.MaxPlayers <= 3)
@@ -2407,42 +2629,42 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     List<PlayerInfo> filteredPlayers = Players.Where(p => !IsPlayerSpectator(p)).ToList();
 
                     if (AIPlayers.Count > 0)
-                        return RANK_NONE;
+                        return Rank.None;
 
                     if (filteredPlayers.Count != Map.MaxPlayers)
-                        return RANK_NONE;
+                        return Rank.None;
 
                     int localTeamIndex = localPlayer.TeamId;
                     if (localTeamIndex > 0 && filteredPlayers.Count(p => p.TeamId == localTeamIndex) > 1)
-                        return RANK_NONE;
+                        return Rank.None;
 
-                    return RANK_HARD;
+                    return Rank.Hard;
                 }
 
                 // Coop stars for maps with 4 or more players
                 // See the code in StatisticsManager.GetRankForCoopMatch for the conditions
 
                 if (Players.Find(p => IsPlayerSpectator(p)) != null)
-                    return RANK_NONE;
+                    return Rank.None;
 
                 if (AIPlayers.Count == 0)
-                    return RANK_NONE;
+                    return Rank.None;
 
                 if (Players.Find(p => p.TeamId != localPlayer.TeamId) != null)
-                    return RANK_NONE;
+                    return Rank.None;
 
                 if (Players.Find(p => p.TeamId == 0) != null)
-                    return RANK_NONE;
+                    return Rank.None;
 
                 if (AIPlayers.Find(p => p.TeamId == 0) != null)
-                    return RANK_NONE;
+                    return Rank.None;
 
                 teamMemberCounts[localPlayer.TeamId] += Players.Count;
 
                 if (lowestEnemyAILevel < highestAllyAILevel)
                 {
                     // Check that the player's AI allies aren't stronger
-                    return RANK_NONE;
+                    return Rank.None;
                 }
 
                 // Check that all teams have at least as many players
@@ -2457,7 +2679,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     if (teamMemberCounts[i] > 0)
                     {
                         if (teamMemberCounts[i] < allyCount)
-                            return RANK_NONE;
+                            return Rank.None;
                     }
                 }
 
@@ -2469,14 +2691,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             // *********
 
             if (AIPlayers.Count != Map.MaxPlayers - 1)
-                return RANK_NONE;
+                return Rank.None;
 
             teamMemberCounts[localPlayer.TeamId]++;
 
             if (lowestEnemyAILevel < highestAllyAILevel)
             {
                 // Check that the player's AI allies aren't stronger
-                return RANK_NONE;
+                return Rank.None;
             }
 
             if (localPlayer.TeamId > 0)
@@ -2493,7 +2715,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     if (teamMemberCounts[i] > 0)
                     {
                         if (teamMemberCounts[i] < allyCount)
-                            return RANK_NONE;
+                            return Rank.None;
                     }
                 }
 
@@ -2512,7 +2734,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 }
 
                 if (!pass)
-                    return RANK_NONE;
+                    return Rank.None;
             }
 
             return lowestEnemyAILevel + 1;
@@ -2552,7 +2774,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 GameLobbyCheckBox checkBox = CheckBoxes.Find(c => c.Name == kvp.Key);
                 if (checkBox != null && checkBox.AllowChanges && checkBox.AllowChecking)
+                {
                     checkBox.Checked = kvp.Value;
+                    checkBox.HostChecked = kvp.Value;
+                }
             }
 
             var dropDownValues = preset.GetDropDownValues();
@@ -2560,7 +2785,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 GameLobbyDropDown dropDown = DropDowns.Find(d => d.Name == kvp.Key);
                 if (dropDown != null && dropDown.AllowDropDown)
+                {
                     dropDown.SelectedIndex = kvp.Value;
+                    dropDown.HostSelectedIndex = kvp.Value;
+                }
             }
 
             disableGameOptionUpdateBroadcast = false;

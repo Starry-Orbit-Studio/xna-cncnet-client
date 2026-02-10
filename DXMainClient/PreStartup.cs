@@ -182,7 +182,6 @@ namespace DTAClient
                     // Lookup all compile-time available strings
                     ClientCore.Generated.TranslationNotifier.Register();
                     ClientGUI.Generated.TranslationNotifier.Register();
-                    DTAConfig.Generated.TranslationNotifier.Register();
                     ClientUpdater.Generated.TranslationNotifier.Register();
                     DTAClient.Generated.TranslationNotifier.Register();
                 }
@@ -241,16 +240,16 @@ namespace DTAClient
             Logger.Log("Type: " + ex.GetType());
             Logger.Log("Message: " + ex.Message);
             Logger.Log("Source: " + ex.Source);
-            Logger.Log("TargetSite.Name: " + ex.TargetSite.Name);
+            Logger.Log("TargetSite.Name: " + ex.TargetSite?.Name);
             Logger.Log("Stacktrace: " + ex.StackTrace);
 
             if (ex.InnerException is not null)
                 LogException(ex.InnerException, true);
         }
 
-        static void HandleException(object sender, Exception ex)
+        public static void HandleException(object sender, Exception ex)
         {
-            LogException(ex);
+            LogException(ex, innerException: false);
 
             string errorLogPath = SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "ClientCrashLogs", FormattableString.Invariant($"ClientCrashLog{DateTime.Now.ToString("_yyyy_MM_dd_HH_mm")}.txt"));
             bool crashLogCopied = false;
@@ -287,7 +286,7 @@ namespace DTAClient
                 return;
 
             string error = string.Format(("You seem to be running {0} from a write-protected directory.\n\n" +
-                "For {1} to function properly when run from a write-protected directory, it needs administrative priveleges.\n\n" +
+                "For {1} to function properly when run from a write-protected directory, it needs administrative privileges.\n\n" +
                 "Please also make sure that your security software isn't blocking {1}.").L10N("Client:Main:AdminRequiredExplanation"),
                 MainClientConstants.GAME_NAME_LONG, MainClientConstants.GAME_NAME_SHORT);
 
@@ -299,12 +298,7 @@ namespace DTAClient
             DialogResult result = MessageBox.Show(error + "\n\n" + question, title, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
             if (result == DialogResult.Yes)
             {
-                using var _ = Process.Start(new ProcessStartInfo
-                {
-                    FileName = SafePath.CombineFilePath(ProgramConstants.StartupExecutable),
-                    Verb = "runas",
-                    UseShellExecute = true,
-                });
+                AdminRestarter.RestartAsAdmin();
             }
 #else
             MainClientConstants.DisplayErrorAction(title, error, true);

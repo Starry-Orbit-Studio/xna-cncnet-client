@@ -13,19 +13,24 @@ using DTAClient.Domain;
 using Microsoft.Xna.Framework;
 using ClientCore.Extensions;
 
+using DTAClient.DXGUI.Multiplayer.CnCNet;
+
 namespace DTAClient.DXGUI.Multiplayer.GameLobby
 {
     public class SkirmishLobby : GameLobbyBase, ISwitchable
     {
         private const string SETTINGS_PATH = "Client/SkirmishSettings.ini";
 
-        public SkirmishLobby(WindowManager windowManager, TopBar topBar, MapLoader mapLoader, DiscordHandler discordHandler)
-            : base(windowManager, "SkirmishLobby", mapLoader, false, discordHandler)
+        public SkirmishLobby(WindowManager windowManager, TopBar topBar, MapLoader mapLoader, DiscordHandler discordHandler, Random random)
+            : base(windowManager, "SkirmishLobby", mapLoader, false, discordHandler, random)
         {
             this.topBar = topBar;
+            this.random = random;
         }
 
         public event EventHandler Exited;
+
+        private Random random;
 
         TopBar topBar;
 
@@ -33,7 +38,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             base.Initialize();
 
-            RandomSeed = new Random().Next();
+            RandomSeed = random.Next();
 
             //InitPlayerOptionDropdowns(128, 98, 90, 48, 55, new Point(6, 24));
             InitPlayerOptionDropdowns();
@@ -230,7 +235,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             DdGameModeMapFilter_SelectedIndexChanged(null, EventArgs.Empty); // Refresh ranks
 
-            RandomSeed = new Random().Next();
+            RandomSeed = random.Next();
         }
 
         public void Open()
@@ -367,7 +372,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 //return;
             }
 
-            bool AIAllowed = !(Map.MultiplayerOnly || GameMode.MultiplayerOnly) || !(Map.HumanPlayersOnly || GameMode.HumanPlayersOnly);
+            bool AIAllowed = !(Map.HumanPlayersOnly || GameMode.HumanPlayersOnly);
             foreach (string key in keys)
             {
                 if (!AIAllowed) break;

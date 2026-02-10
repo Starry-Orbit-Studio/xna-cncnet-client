@@ -34,7 +34,7 @@ _NOTE: Constants can only be used in [dynamic control properties](#dynamic-contr
 - The `comma-separated strings` is a string, but separated with `,` character without spaces e.g., `one,two,three`.
 <!-- - The `comma separated integers` or `comma separated floats` is a `integer` or `float` type, but separated with `,` character without spaces e.g., `0,0` or `0.0,0.0` respectively. -->
 
-## Control properties
+## Control Properties
 
 Below lists basic and dynamic control properties. Ordering of properties is important. If there is a property that relies on the size of a control, the properties must set the size of that control first.
 
@@ -279,7 +279,7 @@ OptionX=                        ; string,  the text option for dropdown. `X` is 
 ; Option_ThirdOption=33333
 ```
 
-#### [XNAClientDropDown](https://github.com/CnCNet/xna-cncnet-client/blob/develop/ClientGUI/XNAClientCheckBox.cs)
+#### [XNAClientDropDown](https://github.com/CnCNet/xna-cncnet-client/blob/develop/ClientGUI/XNAClientDropDown.cs)
 
 _(inherits XNADropDown)_
 
@@ -287,6 +287,21 @@ _(inherits XNADropDown)_
 [SOMECLIENTDROPDOWN] ; XNAClientDropDown
 ToolTip=            ; text, tooltip for dropdown.
 ```
+
+#### [XNAColorDropDown](https://github.com/CnCNet/xna-cncnet-client/blob/develop/ClientGUI/XNAColorDropDown.cs)
+
+_(inherits XNAClientDropDown)_
+
+```ini
+[SOMECOLORDROPDOWN] ; XNAColorDropDown
+ItemsDrawMode=TextAndIcon         ; enum (Text | Icon | TextAndIcon),
+                                  ; this will set what combination of texture and text should client use.
+RandomColorTexture=randomicon.png ; string, the file to load as texture for random color.
+DisabledItemTexture=              ; string, the file to load as texture for disabled items, defaults to texture generated from disabled item color
+ColorTextureHeight=               ; int, color icon height in pixels.
+ColorTextureWidth=                ; int, color icon width in pixels.
+```
+
 
 #### [XNATabControl](https://github.com/Rampastring/Rampastring.XNAUI/blob/master/XNAControls/XNATabControl.cs)
 
@@ -313,7 +328,7 @@ MaximumTextLength=2147483647 ; integer, set maximum input string length.
 
 #### [XNASuggestionTextBox](https://github.com/Rampastring/Rampastring.XNAUI/blob/master/XNAControls/XNASuggestionTextBox.cs)
 
-_(inherits [XNAControl](#XNATextBox))_
+_(inherits [XNATextBox](#XNATextBox))_
 
 ```ini
 [SOMESUGGESTIONTEXTBOX] ; XNASuggestionTextBox
@@ -341,6 +356,15 @@ FillHeight=10
 ### Special Controls & Their Properties
 
 Some controls are only available under specific circumstances.
+
+#### CoopBriefingBox
+
+```ini
+; GameLobbyBase.ini
+
+[MapPreviewBox_CoopBriefingBox]
+FontIndex=0
+```
 
 #### XNAOptionsPanel Controls
 
@@ -491,4 +515,44 @@ $Width=100
 $Width=MY_WIDTH_CONSTANT
 $Height=100
 $Height=MY_HEIGHT_CONSTANT
+```
+
+## Window Properties
+
+Children of [XNAWindow](https://github.com/CnCNet/xna-cncnet-client/blob/develop/ClientGUI/XNAWindow.cs) that define their own properties.
+
+### [LoadingScreen](https://github.com/CnCNet/xna-cncnet-client/blob/develop/DXMainClient/DXGUI/Generic/LoadingScreen.cs)
+
+```ini
+; LoadingScreen.ini
+[LoadingScreen]
+RandomBackgroundTextures=  ; comma-separated list of strings,
+                           ; paths of files to use randomly as BackgroundTexture
+```
+
+# Global Config Files
+
+## [ClientDefinition](https://github.com/CnCNet/xna-cncnet-client/blob/develop/ClientCore/ClientConfiguration.cs)
+> [!NOTE]
+> _TODO work in progress_
+
+The `ClientDefinitions.ini` file defines the client's global settings, including the game type, recommended resolutions and the executable file used to launch the game.
+
+In `ClientDefinitions.ini`:
+```ini
+[Settings]
+TrustedDomains=                ; comma-separated list of strings,
+                               ; domain names to match links and prevent the message box from appearing before they open by default browser
+                               ; example: cncnet.org,github.com,moddb.com
+```
+
+```ini
+[Settings]
+SaveSkirmishGameOptions=false  ; boolean, whether or not previously used game options in skirmish are saved across client sessions
+SaveCampaignGameOptions=false  ; boolean, whether or not previously used game options in campaign are saved across client sessions
+```
+
+```ini
+[Settings]
+CompatibilityCheckExecutables=CnCNetYRLauncher.exe,gamemd.exe,gamemd-spawn.exe ; comma-separated list of strings, to check for DirectDraw compatibility mode issues
 ```

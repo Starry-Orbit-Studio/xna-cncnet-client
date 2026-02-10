@@ -28,10 +28,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private const int MAX_DIE_SIDES = 100;
 
         public MultiplayerGameLobby(WindowManager windowManager, string iniName,
-            TopBar topBar, MapLoader mapLoader, DiscordHandler discordHandler, PrivateMessagingWindow pmWindow)
-            : base(windowManager, iniName, mapLoader, true, discordHandler)
+            TopBar topBar, MapLoader mapLoader, DiscordHandler discordHandler, PrivateMessagingWindow pmWindow, Random random)
+            : base(windowManager, iniName, mapLoader, true, discordHandler, random)
         {
             TopBar = topBar;
+            this.random = random;
 
             chatBoxCommands = new List<ChatBoxCommand>
             {
@@ -60,6 +61,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected XNAChatTextBox tbChatInput;
         protected XNAClientButton btnLockGame;
         protected XNAClientCheckBox chkAutoReady;
+
+        private Random random;
 
         protected bool IsHost = false;
 
@@ -265,8 +268,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (fsw != null)
                 fsw.EnableRaisingEvents = true;
 
-            for (int pId = 0; pId < Players.Count; pId++)
-                Players[pId].IsInGame = true;
+            if (UserINISettings.Instance.StopGameLobbyMessageAudio)
+                sndMessageSound.Enabled = false;
 
             base.StartGame();
         }
@@ -280,6 +283,9 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             PlayerInfo pInfo = Players.Find(p => p.Name == ProgramConstants.PLAYERNAME);
             pInfo.IsInGame = false;
+
+            if (UserINISettings.Instance.StopGameLobbyMessageAudio)
+                sndMessageSound.Enabled = true;
 
             base.GameProcessExited();
 
@@ -520,7 +526,6 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
 
             int[] results = new int[dieCount];
-            Random random = new Random();
             for (int i = 0; i < dieCount; i++)
             {
                 results[i] = random.Next(1, dieSides + 1);
@@ -898,7 +903,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         }
 
         protected virtual void LockGameNotification() =>
-            AddNotice("You need to lock the game room before launching the game.".L10N("Client:Main:LockGameNotification"));
+            AddNotice("The host needs to lock the game room before launching the game.".L10N("Client:Main:LockGameNotificationV2"));
 
         protected virtual void SharedColorsNotification() =>
             AddNotice("Multiple human players cannot share the same color.".L10N("Client:Main:SharedColorsNotification"));

@@ -15,6 +15,10 @@ using Point = Microsoft.Xna.Framework.Point;
 using Utilities = Rampastring.Tools.Utilities;
 using static System.Collections.Specialized.BitVector32;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+using ClientCore.PlatformShim;
+using DTAClient.DXGUI.Multiplayer.GameLobby;
 
 namespace DTAClient.Domain.Multiplayer
 {
@@ -49,9 +53,11 @@ namespace DTAClient.Domain.Multiplayer
 
         public Map(string baseFilePath, bool isCustomMap)
         {
+            Debug.Assert(!baseFilePath.EndsWith($".{ClientConfiguration.Instance.MapFileExtension}", StringComparison.InvariantCultureIgnoreCase), $"Unexpected map path {baseFilePath}. It should end with the map extension.");
+
             BaseFilePath = baseFilePath;
             customMapFilePath = isCustomMap
-                ? SafePath.CombineFilePath(ProgramConstants.GamePath, FormattableString.Invariant($"{baseFilePath}{MapLoader.MAP_FILE_EXTENSION}"))
+                ? SafePath.CombineFilePath(ProgramConstants.GamePath, FormattableString.Invariant($"{baseFilePath}.{ClientConfiguration.Instance.MapFileExtension}"))
                 : null;
             Official = string.IsNullOrWhiteSpace(customMapFilePath);
         }
@@ -59,13 +65,25 @@ namespace DTAClient.Domain.Multiplayer
         /// <summary>
         /// The name of the map.
         /// </summary>
-        [JsonInclude]
-        public string Name { get; private set; }
+        [JsonIgnore]
+        public string Name => !Official || string.IsNullOrEmpty(UntranslatedName) || string.IsNullOrEmpty(BaseFilePath)
+            ? UntranslatedName
+            : UntranslatedName.L10N($"INI:Maps:{BaseFilePath}:Description");
 
         /// <summary>
         /// The original untranslated name of the map.
         /// </summary>
-        public string UntranslatedName { get; private set; }
+        [JsonInclude]
+        public string UntranslatedName
+        {
+            get => field;
+            private set
+            {
+                field = value;
+                // Force triggering localization of the name now
+                _ = Name;
+            }
+        }
 
         /// <summary>
         /// The maximum amount of players supported by the map.
@@ -122,7 +140,7 @@ namespace DTAClient.Domain.Multiplayer
         /// <summary>
         /// The calculated SHA1 of the map.
         /// </summary>
-        [JsonIgnore]
+        [JsonInclude]
         public string SHA1 { get; private set; }
 
         /// <summary>
@@ -136,7 +154,7 @@ namespace DTAClient.Domain.Multiplayer
         /// Includes the game directory in the path.
         /// </summary>
         [JsonIgnore]
-        public string CompleteFilePath => SafePath.CombineFilePath(ProgramConstants.GamePath, FormattableString.Invariant($"{BaseFilePath}{MapLoader.MAP_FILE_EXTENSION}"));
+        public string CompleteFilePath => SafePath.CombineFilePath(ProgramConstants.GamePath, FormattableString.Invariant($"{BaseFilePath}.{ClientConfiguration.Instance.MapFileExtension}"));
 
         /// <summary>
         /// The file name of the preview image.
@@ -221,9 +239,6 @@ namespace DTAClient.Domain.Multiplayer
         public int height;
 
         [JsonIgnore]
-        private IniFile customMapIni;
-
-        [JsonIgnore]
         private readonly string customMapFilePath;
 
         [JsonInclude]
@@ -241,6 +256,7 @@ namespace DTAClient.Domain.Multiplayer
         [JsonIgnore]
         public List<TeamStartMapping> TeamStartMappings => TeamStartMappingPresets?.FirstOrDefault()?.TeamStartMappings;
 
+        // TODO: move preview texture caching out of the Map class
         [JsonIgnore]
         public Texture2D PreviewTexture { get; set; }
 
@@ -286,8 +302,6 @@ namespace DTAClient.Domain.Multiplayer
                 var section = iniFile.GetSection(BaseFilePath);
 
                 UntranslatedName = section.GetStringValue("Description", "Unnamed map");
-                Name = UntranslatedName
-                    .L10N($"INI:Maps:{BaseFilePath}:Description");
 
                 Author = section.GetStringValue("Author", "Unknown author");
                 GameModes = section.GetStringValue("GameModes", "Default").Split(',');
@@ -395,7 +409,7 @@ namespace DTAClient.Domain.Multiplayer
                     if (string.IsNullOrEmpty(waypoint))
                         break;
 
-                    Debug.Assert(int.TryParse(waypoint, out _), $"waypoint should be a number, got {waypoint}");
+                    Debug.Assert(int.TryParse(waypoint.Split(',')[0], out _), $"waypoint should be a number, got {waypoint}");
                     waypoints.Add(waypoint);
                 }
 
@@ -491,24 +505,22 @@ namespace DTAClient.Domain.Multiplayer
             return GetTDRACellPixelCoord(mapPoint.X, mapPoint.Y, x, y, width, height, previewSize);
         }
 
-        /// <summary>
-        /// Due to caching, this may not have been loaded on application start.
-        /// This function provides the ability to load when needed.
-        /// </summary>
-        /// <returns>Returns the loaded INI file of a custom map.</returns>
-        private IniFile GetCustomMapIniFile()
+        /// <summary>Returns the loaded INI file of a custom map.</summary>
+        private IniFile GetCustomMapIniFile(bool loadPreviewTextureSection = true)
         {
-            if (customMapIni != null)
-                return customMapIni;
-
-            customMapIni = new IniFile { FileName = SafePath.CombineFilePath(customMapFilePath) };
+            var customMapIni = new IniFile { FileName = SafePath.CombineFilePath(customMapFilePath) };
             customMapIni.AddSection("Basic");
             customMapIni.AddSection("Map");
             customMapIni.AddSection("Waypoints");
-            customMapIni.AddSection("Preview");
-            customMapIni.AddSection("PreviewPack");
             customMapIni.AddSection("ForcedOptions");
             customMapIni.AddSection("ForcedSpawnIniOptions");
+
+            // Optionally load preview sections, to accelerate building custom map caches without reading preview.
+            if (loadPreviewTextureSection)
+            {
+                customMapIni.AddSection("Preview");
+                customMapIni.AddSection("PreviewPack");
+            }
             customMapIni.AllowNewSections = false;
             customMapIni.Parse();
 
@@ -526,11 +538,11 @@ namespace DTAClient.Domain.Multiplayer
 
             try
             {
-                IniFile iniFile = GetCustomMapIniFile();
+                IniFile iniFile = GetCustomMapIniFile(loadPreviewTextureSection: false);
 
                 IniSection basicSection = iniFile.GetSection("Basic");
 
-                UntranslatedName = Name = basicSection.GetStringValue("Name", "Unnamed map");
+                UntranslatedName = basicSection.GetStringValue("Name", "Unnamed map");
                 Author = basicSection.GetStringValue("Author", "Unknown author");
 
                 string gameModesString = basicSection.GetStringValue("GameModes", string.Empty);
@@ -582,14 +594,12 @@ namespace DTAClient.Domain.Multiplayer
                 if (IsCoop)
                 {
                     CoopInfo = new CoopMapInfo();
-                    string[] disallowedSides = iniFile.GetStringValue("Basic", "DisallowedPlayerSides", string.Empty).Split(
-                        new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] disallowedSides = iniFile.GetStringListValue("Basic", "DisallowedPlayerSides", string.Empty);
 
                     foreach (string sideIndex in disallowedSides)
                         CoopInfo.DisallowedPlayerSides.Add(int.Parse(sideIndex, CultureInfo.InvariantCulture));
 
-                    string[] disallowedColors = iniFile.GetStringValue("Basic", "DisallowedPlayerColors", string.Empty).Split(
-                        new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] disallowedColors = iniFile.GetStringListValue("Basic", "DisallowedPlayerColors", string.Empty);
 
                     foreach (string colorIndex in disallowedColors)
                         CoopInfo.DisallowedPlayerColors.Add(int.Parse(colorIndex, CultureInfo.InvariantCulture));
@@ -615,7 +625,7 @@ namespace DTAClient.Domain.Multiplayer
 
                 for (int i = 0; i < MAX_PLAYERS; i++)
                 {
-                    string waypoint = GetCustomMapIniFile().GetStringValue("Waypoints", i.ToString(CultureInfo.InvariantCulture), string.Empty);
+                    string waypoint = iniFile.GetStringValue("Waypoints", i.ToString(CultureInfo.InvariantCulture), string.Empty);
 
                     if (string.IsNullOrEmpty(waypoint))
                         break;
@@ -638,10 +648,15 @@ namespace DTAClient.Domain.Multiplayer
         }
 
         // Ran after the map has been loaded from cache if it is a custom map.
-        public void AfterDeserialize()
+        public void AfterDeserialize(bool recalculateSHA = true)
         {
-            CalculateSHA();
-            UntranslatedName = Name;
+            if (recalculateSHA)
+            {
+                // Instead of doing so, we should just remove the Map object from cache when the map file changes.
+                // Otherwise, the metadata can be out of date.
+                Debug.Assert(false, "The map SHA1 should not be recalculated after deserialization. Remove the Map object from cache when the map file changes instead.");
+                CalculateSHA();
+            }
         }
 
         private void ParseForcedOptions(IniFile iniFile, string forcedOptionsSection)
@@ -694,7 +709,8 @@ namespace DTAClient.Domain.Multiplayer
             if (!Official)
             {
                 // Extract preview from the map itself
-                using Image preview = MapPreviewExtractor.ExtractMapPreview(GetCustomMapIniFile());
+                // TODO: implement a global cache for the preview texture. Don't cache either the texture or the map ini in the Map object itself.
+                using Image preview = MapPreviewExtractor.ExtractMapPreview(GetCustomMapIniFile(loadPreviewTextureSection: true));
 
                 if (preview != null)
                 {
@@ -709,11 +725,15 @@ namespace DTAClient.Domain.Multiplayer
 
         public IniFile GetMapIni()
         {
-            var mapIni = new IniFile(CompleteFilePath);
+            Encoding mapIniEncoding = MapCodeHelper.GetMapEncoding(CompleteFilePath);
+
+            var mapIni = new IniFile(CompleteFilePath, mapIniEncoding);
 
             if (!string.IsNullOrEmpty(ExtraININame))
             {
-                var extraIni = new IniFile(SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, "Map Code", ExtraININame));
+                string extraIniPath = SafePath.CombineFilePath(ClientConfiguration.Instance.ConfigFileDirectory, "Map Code", ExtraININame);
+                Encoding extraIniEncoding = MapCodeHelper.GetMapEncoding(extraIniPath);
+                var extraIni = new IniFile(extraIniPath, extraIniEncoding);
                 IniFile.ConsolidateIniFiles(mapIni, extraIni);
             }
 
@@ -913,6 +933,32 @@ namespace DTAClient.Domain.Multiplayer
             int pixelY = Convert.ToInt32(ratioY * previewSizePoint.Y);
 
             return new Point(pixelX, pixelY);
+        }
+
+        /// <summary>
+        /// Opens the folder containing this map in the system file manager and selects the map file.
+        /// </summary>
+        public void OpenContainingFolder()
+        {
+            FileInfo mapFileInfo = SafePath.GetFile(CompleteFilePath);
+            if (!mapFileInfo.Exists)
+                return;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // https://stackoverflow.com/questions/13680415/how-to-open-explorer-with-a-specific-file-selected
+                ProcessLauncher.StartShellProcess("explorer.exe", $"/select,\"{mapFileInfo.FullName}\"");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // https://stackoverflow.com/questions/39214539/opening-finder-from-terminal-with-file-selected
+                ProcessLauncher.StartShellProcess("open", $"-R \"{mapFileInfo.FullName}\"");
+            }
+            else
+            {
+                // Linux: no standard way to select a file, just open the folder
+                ProcessLauncher.StartShellProcess(mapFileInfo.Directory?.FullName);
+            }
         }
 
         protected bool Equals(Map other) => string.Equals(SHA1, other?.SHA1, StringComparison.InvariantCultureIgnoreCase);
