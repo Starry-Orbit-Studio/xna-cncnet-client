@@ -259,7 +259,8 @@ namespace DTAClient.DXGUI
                             .AddSingleton<PrivateMessageHandler>()
                             .AddSingleton<MapLoader>()
                             .AddSingleton<Random>(GetRandom())
-                            .AddSingleton<DirectDrawWrapperManager>();
+                            .AddSingleton<DirectDrawWrapperManager>()
+                            .AddSingleton<ClientCore.ExternalAccount.ExternalAccountService>();
 
                         // singleton xna controls - same instance on each request
                         services

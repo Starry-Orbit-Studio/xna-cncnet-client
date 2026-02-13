@@ -8,6 +8,7 @@ using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
 using DTAClient.Online;
 using ClientCore.Extensions;
+using ClientCore.ExternalAccount;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
@@ -60,7 +61,8 @@ namespace DTAClient.DXGUI.Generic
             ManualUpdateQueryWindow manualUpdateQueryWindow,
             UpdateWindow updateWindow,
             ExtrasWindow extrasWindow,
-            DirectDrawWrapperManager directDrawWrapperManager
+            DirectDrawWrapperManager directDrawWrapperManager,
+            ExternalAccountService externalAccountService
         ) : base(windowManager)
         {
             this.lanLobby = lanLobby;
@@ -84,6 +86,7 @@ namespace DTAClient.DXGUI.Generic
             this.updateWindow = updateWindow;
             this.extrasWindow = extrasWindow;
             this.directDrawWrapperManager = directDrawWrapperManager;
+            this.externalAccountService = externalAccountService;
 
             this.cncnetLobby.UpdateCheck += CncnetLobby_UpdateCheck;
             isMediaPlayerAvailable = IsMediaPlayerAvailable();
@@ -120,6 +123,7 @@ namespace DTAClient.DXGUI.Generic
         private readonly UpdateWindow updateWindow;
         private readonly ExtrasWindow extrasWindow;
         private readonly DirectDrawWrapperManager directDrawWrapperManager;
+        private readonly ExternalAccountService externalAccountService;
 
         private XNAMessageBox firstRunMessageBox;
 
@@ -161,6 +165,11 @@ namespace DTAClient.DXGUI.Generic
         private XNAClientButton btnStatistics;
         private XNAClientButton btnCredits;
         private XNAClientButton btnExtras;
+        private XNAClientButton btnLogin;
+        private XNALabel lblUserInfo;
+        private XNALabel lblAvatar;
+        private LoginWindow loginWindow;
+        private DarkeningPanel loginWindowPanel;
 
         /// <summary>
         /// Initializes the main menu's controls.
@@ -296,7 +305,40 @@ namespace DTAClient.DXGUI.Generic
                 Updater.OnCustomComponentsOutdated += Updater_OnCustomComponentsOutdated;
             }
 
-            base.Initialize(); // Read control attributes from INI
+            // 登录按钮和用户信息
+            btnLogin = new XNAClientButton(WindowManager);
+            btnLogin.Name = nameof(btnLogin);
+            btnLogin.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+            btnLogin.HoverTexture = AssetLoader.LoadTexture("MainMenu/button_c.png");
+            btnLogin.HoverSoundEffect = new EnhancedSoundEffect("MainMenu/button.wav");
+            btnLogin.ClientRectangle = new Rectangle(Width - 150, 50, UIDesignConstants.BUTTON_WIDTH_160, UIDesignConstants.BUTTON_HEIGHT);
+            btnLogin.LeftClick += BtnLogin_LeftClick;
+            AddChild(btnLogin);
+
+            lblUserInfo = new XNALabel(WindowManager);
+            lblUserInfo.Name = nameof(lblUserInfo);
+            lblUserInfo.ClientRectangle = new Rectangle(Width - 300, 55, 0, 0);
+            AddChild(lblUserInfo);
+
+            lblAvatar = new XNALabel(WindowManager);
+            lblAvatar.Name = nameof(lblAvatar);
+            lblAvatar.ClientRectangle = new Rectangle(Width - 350, 50, 32, 32);
+            AddChild(lblAvatar);
+
+             UpdateLoginUI();
+
+             // 创建登录窗口
+             loginWindow = new LoginWindow(WindowManager, externalAccountService);
+             loginWindowPanel = new DarkeningPanel(WindowManager);
+             loginWindowPanel.Alpha = 0.0f;
+             AddChild(loginWindowPanel);
+             loginWindowPanel.AddChild(loginWindow);
+             loginWindow.Disable();
+             
+             // 确保DarkeningPanel正确设置尺寸以覆盖整个屏幕
+             loginWindowPanel.SetPositionAndSize();
+
+             base.Initialize(); // Read control attributes from INI
 
             lblVersion.Text = Updater.GameVersion;
 
@@ -629,9 +671,12 @@ namespace DTAClient.DXGUI.Generic
             WindowManager.AddAndInitializeControl(topBar);
             topBar.AddPrimarySwitchable(this);
 
-            RevertSwitchMainMenuMusicFormat();
+             RevertSwitchMainMenuMusicFormat();
 
-            LoadThemeSong();
+             // 配置外部账户服务
+             ConfigureExternalAccountService();
+
+             LoadThemeSong();
 
             PlayMusic();
 
@@ -1174,6 +1219,78 @@ namespace DTAClient.DXGUI.Generic
             mapEditorProcess.StartInfo.UseShellExecute = false;
 
             mapEditorProcess.Start();
+        }
+
+        private void UpdateLoginUI()
+        {
+            if (externalAccountService.IsLoggedIn)
+            {
+                var user = externalAccountService.CurrentUser;
+                btnLogin.Text = "Logout".L10N("Client:Main:Logout");
+                lblUserInfo.Text = user?.DisplayName ?? user?.Username ?? "Unknown";
+                // 这里可以加载头像，但暂时省略
+                lblAvatar.Text = "●"; // 预留头像显示
+                lblUserInfo.Visible = true;
+                lblAvatar.Visible = true;
+            }
+            else
+            {
+                btnLogin.Text = "Login".L10N("Client:Main:Login");
+                lblUserInfo.Visible = false;
+                lblAvatar.Visible = false;
+            }
+        }
+
+        private void ConfigureExternalAccountService()
+        {
+            // 订阅登录状态变化事件
+            externalAccountService.LoginStateChanged += (s, e) => UpdateLoginUI();
+
+            // 使用ClientConfiguration读取API配置
+            var config = ClientConfiguration.Instance;
+            
+            if (config.IsExternalAccountEnabled)
+            {
+                try
+                {
+                    string apiBaseUrl = config.ExternalAccountApiBaseUrl;
+                    externalAccountService.SetBaseAddress(apiBaseUrl);
+                    Logger.Log($"External account service configured with base address: {apiBaseUrl}");
+
+                    // 配置API端点
+                    string loginEndpoint = config.ExternalAccountLoginEndpoint;
+                    string refreshEndpoint = config.ExternalAccountRefreshEndpoint;
+                    string userInfoEndpoint = config.ExternalAccountUserInfoEndpoint;
+
+                    externalAccountService.ConfigureEndpoints(loginEndpoint, refreshEndpoint, userInfoEndpoint);
+
+                    if (!string.IsNullOrEmpty(loginEndpoint))
+                        Logger.Log($"External account login endpoint configured: {loginEndpoint}");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Failed to set external account service base address: {ex.Message}");
+                }
+            }
+            else
+            {
+                Logger.Log("External account API base URL not configured.");
+            }
+        }
+
+        private void BtnLogin_LeftClick(object sender, EventArgs e)
+        {
+            if (externalAccountService.IsLoggedIn)
+            {
+                externalAccountService.Logout();
+                UpdateLoginUI();
+            }
+            else
+            {
+                // 打开登录窗口
+                loginWindow.Open();
+                loginWindow.Enable();
+            }
         }
 
         public string GetSwitchName() => "Main Menu".L10N("Client:Main:MainMenu");

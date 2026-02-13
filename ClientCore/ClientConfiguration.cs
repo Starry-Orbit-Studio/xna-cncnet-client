@@ -491,6 +491,73 @@ namespace ClientCore
 
         public bool DisableDiscordIntegration => networkDefinitionsIni.GetBooleanValue(SETTINGS, "DisableDiscordIntegration", false);
 
+        #region External Account Configuration
+        
+        /// <summary>
+        /// 外部账户API基础地址 (来自[ExternalAccount]节的ApiBaseUrl)
+        /// 如果不存在则使用[Settings]节的ExternalAccountBaseURL
+        /// 默认值: http://www.ra2modol.com:8000/api/v1
+        /// </summary>
+        public string ExternalAccountApiBaseUrl
+        {
+            get
+            {
+                // 优先从[ExternalAccount]节读取 - 如果键存在则返回其值（即使为空）
+                if (networkDefinitionsIni.KeyExists("ExternalAccount", "ApiBaseUrl"))
+                    return networkDefinitionsIni.GetStringValue("ExternalAccount", "ApiBaseUrl", string.Empty);
+                
+                // 回退到[Settings]节的旧配置 - 如果键存在则返回其值
+                if (networkDefinitionsIni.KeyExists(SETTINGS, "ExternalAccountBaseURL"))
+                    return networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountBaseURL", string.Empty);
+                
+                // 如果两个键都不存在，则返回内置默认值
+                return "http://www.ra2modol.com:8000/api/v1";
+            }
+        }
+        
+        /// <summary>
+        /// GitHub OAuth Client ID (来自[GitHubOAuth]节的ClientId)
+        /// 默认值: Ov23liDceeIqUi2cOYf2
+        /// </summary>
+        public string GitHubOAuthClientId => networkDefinitionsIni.GetStringValue("GitHubOAuth", "ClientId", "Ov23liDceeIqUi2cOYf2");
+        
+        /// <summary>
+        /// GitHub OAuth 回调地址 (来自[GitHubOAuth]节的RedirectUri)
+        /// 默认值: http://localhost:12345/callback/
+        /// </summary>
+        public string GitHubOAuthRedirectUri => networkDefinitionsIni.GetStringValue("GitHubOAuth", "RedirectUri", "http://localhost:12345/callback/");
+        
+        /// <summary>
+        /// GitHub OAuth 权限范围 (来自[GitHubOAuth]节的Scopes)
+        /// 默认值: read:user user:email
+        /// </summary>
+        public string GitHubOAuthScopes => networkDefinitionsIni.GetStringValue("GitHubOAuth", "Scopes", "read:user user:email");
+        
+        /// <summary>
+        /// 外部账户登录端点 (来自[Settings]节的ExternalAccountLoginEndpoint)
+        /// 默认值: /login/github
+        /// </summary>
+        public string ExternalAccountLoginEndpoint => networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountLoginEndpoint", "/login/github");
+        
+        /// <summary>
+        /// 外部账户刷新令牌端点 (来自[Settings]节的ExternalAccountRefreshEndpoint)
+        /// 默认值: 空字符串（表示不支持刷新令牌）
+        /// </summary>
+        public string ExternalAccountRefreshEndpoint => networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountRefreshEndpoint", string.Empty);
+        
+        /// <summary>
+        /// 外部账户用户信息端点 (来自[Settings]节的ExternalAccountUserInfoEndpoint)
+        /// 默认值: /users/me
+        /// </summary>
+        public string ExternalAccountUserInfoEndpoint => networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountUserInfoEndpoint", "/users/me");
+        
+        /// <summary>
+        /// 检查外部账户功能是否启用（通过检查API基础地址是否配置）
+        /// </summary>
+        public bool IsExternalAccountEnabled => !string.IsNullOrEmpty(ExternalAccountApiBaseUrl);
+        
+        #endregion
+
         public List<string> IRCServers => GetIRCServers();
 
         #endregion

@@ -1,10 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>CnCNet Client Core Library</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Text.Encoding.CodePages" />
     <PackageReference Include="Ude.NetStandard" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Rampastring.XNAUI\Rampastring.Tools\Rampastring.Tools.csproj" />
