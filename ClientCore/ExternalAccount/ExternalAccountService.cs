@@ -30,11 +30,12 @@ namespace ClientCore.ExternalAccount
         private string _refreshToken;
         private UserInfo _userInfo;
         
-        private string _loginEndpoint = "/api/auth/login";
-        private string _refreshEndpoint = "/api/auth/refresh";
-        private string _userInfoEndpoint = "/users/me";
+        private string _loginEndpoint = "api/auth/login";
+        private string _refreshEndpoint = "api/auth/refresh";
+        private string _userInfoEndpoint = "users/me";
 
         public event EventHandler LoginStateChanged;
+        public event EventHandler UserInfoUpdated;
         
         /// <summary>
         /// 获取最后一次操作的错误信息
@@ -77,7 +78,15 @@ namespace ClientCore.ExternalAccount
             if (!Uri.TryCreate(baseAddress, UriKind.Absolute, out Uri uri))
                 throw new ArgumentException("无效的BaseAddress");
                 
+            // 确保BaseAddress以斜杠结尾，以便正确组合相对路径
+            if (!uri.AbsoluteUri.EndsWith("/"))
+            {
+                uri = new Uri(uri.AbsoluteUri + "/");
+                Rampastring.Tools.Logger.Log($"ExternalAccountService.SetBaseAddress: 调整为以斜杠结尾: {uri}");
+            }
+                
             _httpClient.BaseAddress = uri;
+            Rampastring.Tools.Logger.Log($"ExternalAccountService.SetBaseAddress: 设置为 {uri}");
         }
 
         /// <summary>
@@ -86,11 +95,47 @@ namespace ClientCore.ExternalAccount
         public void ConfigureEndpoints(string loginEndpoint, string refreshEndpoint, string userInfoEndpoint)
         {
             if (!string.IsNullOrEmpty(loginEndpoint))
-                _loginEndpoint = loginEndpoint;
+            {
+                // 如果 loginEndpoint 不是绝对URL且以斜杠开头，移除前导斜杠以确保正确组合
+                if (!Uri.IsWellFormedUriString(loginEndpoint, UriKind.Absolute) && loginEndpoint.StartsWith("/"))
+                {
+                    _loginEndpoint = loginEndpoint.Substring(1);
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService.ConfigureEndpoints: _loginEndpoint 调整为 {_loginEndpoint} (移除前导斜杠)");
+                }
+                else
+                {
+                    _loginEndpoint = loginEndpoint;
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService.ConfigureEndpoints: _loginEndpoint 设置为 {loginEndpoint}");
+                }
+            }
             if (!string.IsNullOrEmpty(refreshEndpoint))
-                _refreshEndpoint = refreshEndpoint;
+            {
+                // 如果 refreshEndpoint 不是绝对URL且以斜杠开头，移除前导斜杠以确保正确组合
+                if (!Uri.IsWellFormedUriString(refreshEndpoint, UriKind.Absolute) && refreshEndpoint.StartsWith("/"))
+                {
+                    _refreshEndpoint = refreshEndpoint.Substring(1);
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService.ConfigureEndpoints: _refreshEndpoint 调整为 {_refreshEndpoint} (移除前导斜杠)");
+                }
+                else
+                {
+                    _refreshEndpoint = refreshEndpoint;
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService.ConfigureEndpoints: _refreshEndpoint 设置为 {refreshEndpoint}");
+                }
+            }
             if (!string.IsNullOrEmpty(userInfoEndpoint))
-                _userInfoEndpoint = userInfoEndpoint;
+            {
+                // 如果 userInfoEndpoint 不是绝对URL且以斜杠开头，移除前导斜杠以确保正确组合
+                if (!Uri.IsWellFormedUriString(userInfoEndpoint, UriKind.Absolute) && userInfoEndpoint.StartsWith("/"))
+                {
+                    _userInfoEndpoint = userInfoEndpoint.Substring(1);
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService.ConfigureEndpoints: _userInfoEndpoint 调整为 {_userInfoEndpoint} (移除前导斜杠)");
+                }
+                else
+                {
+                    _userInfoEndpoint = userInfoEndpoint;
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService.ConfigureEndpoints: _userInfoEndpoint 设置为 {userInfoEndpoint}");
+                }
+            }
         }
 
         /// <summary>
@@ -154,6 +199,7 @@ namespace ClientCore.ExternalAccount
             _authToken = null;
             _refreshToken = null;
             _userInfo = null;
+            UserInfoUpdated?.Invoke(this, EventArgs.Empty);
             
             ClearTokens();
             
@@ -223,6 +269,10 @@ namespace ClientCore.ExternalAccount
                 var request = new HttpRequestMessage(HttpMethod.Get, _userInfoEndpoint);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
 
+                Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: BaseAddress={_httpClient.BaseAddress}, _userInfoEndpoint={_userInfoEndpoint}");
+                string fullUrl = _httpClient.BaseAddress == null ? _userInfoEndpoint : new Uri(_httpClient.BaseAddress, _userInfoEndpoint).ToString();
+                Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 发送请求到 {fullUrl}");
+
                 var response = await _httpClient.SendAsync(request);
                 
                 if (!response.IsSuccessStatusCode)
@@ -232,8 +282,11 @@ namespace ClientCore.ExternalAccount
                 }
 
                 var responseJson = await response.Content.ReadAsStringAsync();
+                Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 收到响应: {responseJson}");
                 _userInfo = JsonSerializer.Deserialize<UserInfo>(responseJson);
+                Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 用户信息反序列化成功 - Nickname: {_userInfo?.Nickname}, Avatar: {_userInfo?.Avatar}");
                 
+                UserInfoUpdated?.Invoke(this, EventArgs.Empty);
                 SaveTokens();
                 return true;
             }
@@ -264,16 +317,24 @@ namespace ClientCore.ExternalAccount
                 if (userInfo != null)
                 {
                     _userInfo = userInfo;
+                    UserInfoUpdated?.Invoke(this, EventArgs.Empty);
                 }
                 else
                 {
                     // 如果没有提供用户信息，尝试从API获取
-                    await FetchUserInfoAsync();
+                    bool fetchSuccess = await FetchUserInfoAsync();
+                    if (!fetchSuccess)
+                    {
+                        Rampastring.Tools.Logger.Log($"LoginWithOAuthAsync: 获取用户信息失败 - {LastError}");
+                        return false;
+                    }
                 }
                 
                 SaveTokens();
                 
+                Rampastring.Tools.Logger.Log($"LoginWithOAuthAsync: 触发LoginStateChanged事件，订阅者数量: {LoginStateChanged?.GetInvocationList()?.Length ?? 0}");
                 LoginStateChanged?.Invoke(this, EventArgs.Empty);
+                Rampastring.Tools.Logger.Log($"LoginWithOAuthAsync: 登录成功，用户: {_userInfo?.Nickname ?? "未知"}");
                 return true;
             }
             catch (Exception ex)
@@ -399,7 +460,7 @@ namespace ClientCore.ExternalAccount
         [JsonPropertyName("provider")]
         public string Provider { get; set; }
         
-        [JsonPropertyName("identity_id")]
+        [JsonPropertyName("provider_uid")]
         public string IdentityId { get; set; }
         
         [JsonPropertyName("profile_url")]
@@ -418,7 +479,7 @@ namespace ClientCore.ExternalAccount
         public string Avatar { get; set; }
         
         [JsonPropertyName("id")]
-        public string Id { get; set; }
+        public int Id { get; set; }
         
         [JsonPropertyName("level")]
         public int Level { get; set; }

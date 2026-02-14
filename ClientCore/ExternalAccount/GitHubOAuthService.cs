@@ -214,7 +214,7 @@ namespace ClientCore.ExternalAccount
                         
                         // 返回错误页面
                         byte[] errorResponse = Encoding.UTF8.GetBytes(
-                            "<html><body><h1>Authentication Failed</h1><p>Please return to the application.</p></body></html>");
+                            "<html><body><h1>Authentication Failed</h1><p id='message'>Please return to the application. This window will close automatically in 3 seconds.</p><script>setTimeout(function() { window.close(); setTimeout(function() { document.getElementById('message').innerHTML = 'You can now safely close this window.'; }, 1000); }, 3000);</script></body></html>");
                         response.ContentType = "text/html";
                         response.ContentLength64 = errorResponse.Length;
                         await response.OutputStream.WriteAsync(errorResponse, 0, errorResponse.Length);
@@ -234,7 +234,7 @@ namespace ClientCore.ExternalAccount
                         {
                             // 返回成功页面
                             byte[] successResponse = Encoding.UTF8.GetBytes(
-                                "<html><body><h1>Authentication Successful</h1><p>You can now return to the application.</p></body></html>");
+                                "<html><body><h1>Authentication Successful</h1><p id='message'>You can now return to the application. This window will close automatically in 3 seconds.</p><script>setTimeout(function() { window.close(); setTimeout(function() { document.getElementById('message').innerHTML = 'You can now safely close this window.'; }, 1000); }, 3000);</script></body></html>");
                             response.ContentType = "text/html";
                             response.ContentLength64 = successResponse.Length;
                             await response.OutputStream.WriteAsync(successResponse, 0, successResponse.Length);
@@ -250,7 +250,7 @@ namespace ClientCore.ExternalAccount
                         {
                             // 返回错误页面
                             byte[] errorResponse = Encoding.UTF8.GetBytes(
-                                $"<html><body><h1>Token Exchange Failed</h1><p>{tokenResult.Error}</p></body></html>");
+                                $"<html><body><h1>Token Exchange Failed</h1><p>{tokenResult.Error}</p><p id='message'>This window will close automatically in 3 seconds.</p><script>setTimeout(function() {{ window.close(); setTimeout(function() {{ document.getElementById('message').innerHTML = 'You can now safely close this window.'; }}, 1000); }}, 3000);</script></body></html>");
                             response.ContentType = "text/html";
                             response.ContentLength64 = errorResponse.Length;
                             await response.OutputStream.WriteAsync(errorResponse, 0, errorResponse.Length);
@@ -262,7 +262,7 @@ namespace ClientCore.ExternalAccount
                     {
                         // 参数不完整
                         byte[] errorResponse = Encoding.UTF8.GetBytes(
-                            "<html><body><h1>Invalid Callback</h1><p>Missing code or state parameter.</p></body></html>");
+                            "<html><body><h1>Invalid Callback</h1><p>Missing code or state parameter.</p><p id='message'>This window will close automatically in 3 seconds.</p><script>setTimeout(function() { window.close(); setTimeout(function() { document.getElementById('message').innerHTML = 'You can now safely close this window.'; }, 1000); }, 3000);</script></body></html>");
                         response.ContentType = "text/html";
                         response.ContentLength64 = errorResponse.Length;
                         await response.OutputStream.WriteAsync(errorResponse, 0, errorResponse.Length);
