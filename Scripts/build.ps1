@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-#Requires -Version 7.2
+#Requires -Version 5.1
 
 #####################################################################
 #

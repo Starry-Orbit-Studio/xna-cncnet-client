@@ -842,7 +842,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             if (hg.Locked)
                 return "The selected game is locked!".L10N("Client:Main:GameLocked");
 
-            if (hg.IsLoadedGame && !hg.Players.Contains(ProgramConstants.PLAYERNAME))
+            if (hg.IsLoadedGame && !hg.Players.Contains(PlayerIdentityService.Instance.GetIRCName()))
                 return "You do not exist in the saved game!".L10N("Client:Main:NotInSavedGame");
 
             return GetJoinGameErrorBase();

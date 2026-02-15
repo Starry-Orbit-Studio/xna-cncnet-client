@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DTAClient.Online
@@ -8,11 +8,14 @@ namespace DTAClient.Online
     /// </summary>
     public class IRCUser : ICloneable
     {
+        private const string GUEST_SUFFIX = " (游客)";
+
         public IRCUser() { }
 
         public IRCUser(string name)
         {
             Name = name;
+            IsGuest = IsGuestName(name);
         }
 
         public IRCUser(string name, string ident, string host)
@@ -20,6 +23,7 @@ namespace DTAClient.Online
             Name = name;
             Ident = ident;
             Hostname = host;
+            IsGuest = IsGuestName(name);
         }
 
         public string Name { get; set; }
@@ -37,5 +41,13 @@ namespace DTAClient.Online
         public bool IsFriend { get; set; }
         public bool IsIgnored { get; set; }
         public bool HasVoice { get; set; }
+
+        public string AvatarUrl { get; set; }
+        public bool IsGuest { get; set; }
+
+        public static bool IsGuestName(string name)
+        {
+            return name != null && name.EndsWith(GUEST_SUFFIX);
+        }
     }
 }

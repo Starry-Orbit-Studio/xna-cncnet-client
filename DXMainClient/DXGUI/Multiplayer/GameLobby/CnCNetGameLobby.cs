@@ -353,7 +353,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             channel.SendCTCPMessage("TNLPNG " + tunnelHandler.CurrentTunnel.PingInMs, QueuedMessageType.SYSTEM_MESSAGE, 10);
 
-            PlayerInfo pInfo = Players.Find(p => p.Name.Equals(ProgramConstants.PLAYERNAME));
+            PlayerInfo pInfo = Players.Find(p => p.Name.Equals(PlayerIdentityService.Instance.GetIRCName()));
             if (pInfo != null)
             {
                 pInfo.Ping = tunnelHandler.CurrentTunnel.PingInMs;
@@ -699,7 +699,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private void Channel_UserKicked(object sender, UserNameEventArgs e)
         {
-            if (e.UserName == ProgramConstants.PLAYERNAME)
+            if (e.UserName == PlayerIdentityService.Instance.GetIRCName())
             {
                 connectionManager.MainChannel.AddMessage(new ChatMessage(
                     ERROR_MESSAGE_COLOR, "You were kicked from the game!".L10N("Client:Main:YouWereKicked")));
@@ -750,12 +750,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (!IsHost)
             {
                 CopyPlayerDataToUI();
-                if (e.User.IRCUser.Name == ProgramConstants.PLAYERNAME)
+                if (e.User.IRCUser.Name == PlayerIdentityService.Instance.GetIRCName())
                     SendMyLevelToHost();
                 return;
             }
 
-            if (e.User.IRCUser.Name != ProgramConstants.PLAYERNAME)
+            if (e.User.IRCUser.Name != PlayerIdentityService.Instance.GetIRCName())
             {
                 // Changing the map applies forced settings (co-op sides etc.) to the
                 // new player, and it also sends an options broadcast message
@@ -926,7 +926,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 return;
             }
 
-            PlayerInfo pInfo = Players.Find(p => p.Name == ProgramConstants.PLAYERNAME);
+            PlayerInfo pInfo = Players.Find(p => p.Name == PlayerIdentityService.Instance.GetIRCName());
             if (pInfo == null)
                 return;
 

@@ -260,8 +260,8 @@ namespace DTAClient.DXGUI
                             .AddSingleton<MapLoader>()
                             .AddSingleton<Random>(GetRandom())
                             .AddSingleton<DirectDrawWrapperManager>()
-                            .AddSingleton<ClientCore.ExternalAccount.ExternalAccountService>();
-
+                            .AddSingleton<ClientCore.ExternalAccount.ExternalAccountService>()
+                            .AddSingleton<PlayerIdentityService>();
                         // singleton xna controls - same instance on each request
                         services
                             .AddSingletonXnaControl<LoadingScreen>()

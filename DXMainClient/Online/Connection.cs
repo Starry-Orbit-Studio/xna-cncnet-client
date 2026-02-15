@@ -945,12 +945,14 @@ namespace DTAClient.Online
             SendMessage(string.Format("USER {0} 0 * :{1}", defaultGame + "." +
                 systemId, realname));
 
-            SendMessage("NICK " + ProgramConstants.PLAYERNAME);
+            string displayName = PlayerIdentityService.Instance.GetPlainName();
+            SendMessage("NICK " + displayName);
         }
 
         public void ChangeNickname()
         {
-            SendMessage("NICK " + ProgramConstants.PLAYERNAME);
+            string displayName = PlayerIdentityService.Instance.GetPlainName();
+            SendMessage("NICK " + displayName);
         }
 
         public void QueueMessage(QueuedMessageType type, int priority, string message, bool replace = false)
