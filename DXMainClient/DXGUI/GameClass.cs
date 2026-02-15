@@ -285,7 +285,9 @@ namespace DTAClient.DXGUI
                             .AddSingletonXnaControl<UpdateQueryWindow>()
                             .AddSingletonXnaControl<ManualUpdateQueryWindow>()
                             .AddSingletonXnaControl<UpdateWindow>()
-                            .AddSingletonXnaControl<ExtrasWindow>();
+                            .AddSingletonXnaControl<ExtrasWindow>()
+                            .AddSingletonXnaControl<LoginWindow>()
+                            .AddSingletonXnaControl<DarkeningPanel>();
 
                         // transient xna controls - new instance on each request
                         services

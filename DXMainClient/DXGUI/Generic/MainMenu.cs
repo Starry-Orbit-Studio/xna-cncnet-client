@@ -167,11 +167,6 @@ namespace DTAClient.DXGUI.Generic
         private XNAClientButton btnStatistics;
         private XNAClientButton btnCredits;
         private XNAClientButton btnExtras;
-        private XNAClientButton btnLogin;
-        private XNALabel lblUserInfo;
-        private XNAClientButton btnAvatar;
-        private LoginWindow loginWindow;
-        private DarkeningPanel loginWindowPanel;
 
         /// <summary>
         /// Initializes the main menu's controls.
@@ -308,64 +303,7 @@ namespace DTAClient.DXGUI.Generic
                 Updater.OnCustomComponentsOutdated += Updater_OnCustomComponentsOutdated;
             }
 
-            // 登录按钮和用户信息
-            // 计算右上角布局：按钮在最右侧，用户信息在按钮左侧
-            int buttonWidth = UIDesignConstants.BUTTON_WIDTH_160;
-            int buttonRightMargin = 10;
-            int buttonX = buttonRightMargin;
-            int buttonY = 50;
-
-            btnLogin = new XNAClientButton(WindowManager);
-            btnLogin.Name = nameof(btnLogin);
-            btnLogin.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-            btnLogin.HoverTexture = AssetLoader.LoadTexture("MainMenu/button_c.png");
-            btnLogin.HoverSoundEffect = new EnhancedSoundEffect("MainMenu/button.wav");
-            btnLogin.ClientRectangle = new Rectangle(buttonX, buttonY, buttonWidth, UIDesignConstants.BUTTON_HEIGHT);
-            btnLogin.LeftClick += BtnLogin_LeftClick;
-            AddChild(btnLogin);
-
-            // 用户信息区域在按钮左侧
-            int avatarSize = 32;
-            int avatarRightMargin = 10; // 头像和用户名之间的间距
-            int userNameRightMargin = 20; // 用户名和按钮之间的间距
-
-            // 计算用户信息位置（从右向左布局）
-            int userNameX = buttonX - userNameRightMargin;
-            int avatarX = userNameX - avatarSize - avatarRightMargin;
-
-            lblUserInfo = new XNALabel(WindowManager);
-            lblUserInfo.Name = nameof(lblUserInfo);
-            lblUserInfo.ClientRectangle = new Rectangle(userNameX, 55, 0, 0);
-            lblUserInfo.FontIndex = 1;
-            lblUserInfo.TextColor = Color.White;
-            AddChild(lblUserInfo);
-            Logger.Log($"MainMenu.Initialize: lblUserInfo at ({lblUserInfo.X},{lblUserInfo.Y}), button at ({buttonX},{buttonY})");
-
-            btnAvatar = new XNAClientButton(WindowManager);
-            btnAvatar.Name = nameof(btnAvatar);
-            btnAvatar.ClientRectangle = new Rectangle(avatarX, 50, avatarSize, avatarSize);
-            btnAvatar.AllowClick = false; // 禁用点击，仅用于显示
-            btnAvatar.Text = ""; // 清空文本
-            // 设置默认占位纹理
-            btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-            btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-            AddChild(btnAvatar);
-            Logger.Log($"MainMenu.Initialize: btnAvatar at ({btnAvatar.X},{btnAvatar.Y})");
-
-             UpdateLoginUI();
-
-             // 创建登录窗口
-             loginWindow = new LoginWindow(WindowManager, externalAccountService);
-             loginWindowPanel = new DarkeningPanel(WindowManager);
-             loginWindowPanel.Alpha = 0.0f;
-             AddChild(loginWindowPanel);
-             loginWindowPanel.AddChild(loginWindow);
-             loginWindow.Disable();
-
-             // 确保DarkeningPanel正确设置尺寸以覆盖整个屏幕
-             loginWindowPanel.SetPositionAndSize();
-
-             base.Initialize(); // Read control attributes from INI
+            base.Initialize(); // Read control attributes from INI
 
             lblVersion.Text = Updater.GameVersion;
 
@@ -699,11 +637,8 @@ namespace DTAClient.DXGUI.Generic
             topBar.AddPrimarySwitchable(this);
 
              RevertSwitchMainMenuMusicFormat();
-
-             // 配置外部账户服务
-             ConfigureExternalAccountService();
-
-             LoadThemeSong();
+ 
+              LoadThemeSong();
 
             PlayMusic();
 
@@ -1239,166 +1174,13 @@ namespace DTAClient.DXGUI.Generic
             using var mapEditorProcess = new Process();
 
             if (osVersion != OSVersion.UNIX)
-                mapEditorProcess.StartInfo.FileName = SafePath.CombineFilePath(ProgramConstants.GamePath, ClientConfiguration.Instance.MapEditorExePath);
+            mapEditorProcess.StartInfo.FileName = SafePath.CombineFilePath(ProgramConstants.GamePath, ClientConfiguration.Instance.MapEditorExePath);
             else
                 mapEditorProcess.StartInfo.FileName = SafePath.CombineFilePath(ProgramConstants.GamePath, ClientConfiguration.Instance.UnixMapEditorExePath);
 
             mapEditorProcess.StartInfo.UseShellExecute = false;
 
             mapEditorProcess.Start();
-        }
-
-        private void UpdateLoginUI()
-        {
-            Rampastring.Tools.Logger.Log($"UpdateLoginUI: IsLoggedIn={externalAccountService.IsLoggedIn}, CurrentUser={(externalAccountService.CurrentUser?.Nickname ?? "null")}");
-            Rampastring.Tools.Logger.Log($"UpdateLoginUI: Window size={Width}x{Height}, ClientRectangle={ClientRectangle}");
-            Rampastring.Tools.Logger.Log($"UpdateLoginUI: lblUserInfo at ({lblUserInfo.X},{lblUserInfo.Y}), ClientRectangle={lblUserInfo.ClientRectangle}, Visible={lblUserInfo.Visible}");
-            Rampastring.Tools.Logger.Log($"UpdateLoginUI: btnAvatar at ({btnAvatar.X},{btnAvatar.Y}), ClientRectangle={btnAvatar.ClientRectangle}, Visible={btnAvatar.Visible}");
-
-            if (externalAccountService.IsLoggedIn)
-            {
-                var user = externalAccountService.CurrentUser;
-                btnLogin.Text = "Logout".L10N("Client:Main:Logout");
-                lblUserInfo.Text = user?.DisplayName ?? user?.Username ?? "Unknown";
-
-                // 加载用户头像
-                if (user != null && !string.IsNullOrEmpty(user.AvatarUrl))
-                {
-                    LoadAvatarAsync(user.AvatarUrl);
-                }
-                else
-                {
-                    // 如果没有头像URL，使用默认占位符
-                    btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                    btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                }
-
-                lblUserInfo.Visible = true;
-                btnAvatar.Visible = true;
-            }
-            else
-            {
-                btnLogin.Text = "Login".L10N("Client:Main:Login");
-                lblUserInfo.Visible = false;
-                btnAvatar.Visible = false;
-            }
-        }
-
-        private void ConfigureExternalAccountService()
-        {
-            // 订阅登录状态变化事件，确保在UI线程执行
-            externalAccountService.LoginStateChanged += (s, e) => WindowManager.AddCallback(new Action(() => UpdateLoginUI()), null);
-            // 订阅用户信息更新事件（例如头像更新）
-            externalAccountService.UserInfoUpdated += (s, e) => WindowManager.AddCallback(new Action(() => UpdateLoginUI()), null);
-
-            // 使用ClientConfiguration读取API配置
-            var config = ClientConfiguration.Instance;
-
-            if (config.IsExternalAccountEnabled)
-            {
-                try
-                {
-                    string apiBaseUrl = config.ExternalAccountApiBaseUrl;
-                    externalAccountService.SetBaseAddress(apiBaseUrl);
-                    Logger.Log($"External account service configured with base address: {apiBaseUrl}");
-
-                    // 配置API端点
-                    string loginEndpoint = config.ExternalAccountLoginEndpoint;
-                    string refreshEndpoint = config.ExternalAccountRefreshEndpoint;
-                    string userInfoEndpoint = config.ExternalAccountUserInfoEndpoint;
-
-                    externalAccountService.ConfigureEndpoints(loginEndpoint, refreshEndpoint, userInfoEndpoint);
-
-                    if (!string.IsNullOrEmpty(loginEndpoint))
-                        Logger.Log($"External account login endpoint configured: {loginEndpoint}");
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log($"Failed to set external account service base address: {ex.Message}");
-                }
-            }
-            else
-            {
-                Logger.Log("External account API base URL not configured.");
-            }
-
-            // 初始化UI状态
-            UpdateLoginUI();
-        }
-
-        private async void LoadAvatarAsync(string avatarUrl)
-        {
-            try
-            {
-                Rampastring.Tools.Logger.Log($"LoadAvatarAsync: 开始加载头像: {avatarUrl}");
-
-                // 使用HttpClient下载头像
-                using (var httpClient = new HttpClient())
-                {
-                    httpClient.Timeout = TimeSpan.FromSeconds(10);
-                    var response = await httpClient.GetAsync(avatarUrl);
-                    response.EnsureSuccessStatusCode();
-
-                    byte[] imageData = await response.Content.ReadAsByteArrayAsync();
-                    Rampastring.Tools.Logger.Log($"LoadAvatarAsync: 下载完成，大小: {imageData.Length} 字节");
-
-                    // 在UI线程中设置纹理
-                    WindowManager.AddCallback(new Action(() =>
-                    {
-                        try
-                        {
-                            using (var memoryStream = new MemoryStream(imageData))
-                            using (var image = SixLabors.ImageSharp.Image.Load(memoryStream))
-                            {
-                                // 使用AssetLoader从Image创建纹理
-                                var texture = AssetLoader.TextureFromImage(image);
-                                if (texture != null)
-                                {
-                                    btnAvatar.IdleTexture = texture;
-                                    btnAvatar.HoverTexture = texture;
-                                    Rampastring.Tools.Logger.Log($"LoadAvatarAsync: 头像加载成功，尺寸: {texture.Width}x{texture.Height}");
-                                }
-                                else
-                                {
-                                    throw new Exception("Failed to create texture from image");
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Rampastring.Tools.Logger.Log($"LoadAvatarAsync: 创建纹理失败: {ex.Message}");
-                            // 使用默认纹理
-                            btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                            btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                        }
-                    }), null);
-                }
-            }
-            catch (Exception ex)
-            {
-                Rampastring.Tools.Logger.Log($"LoadAvatarAsync: 下载头像失败: {ex.Message}");
-                // 使用默认纹理
-                WindowManager.AddCallback(new Action(() =>
-                {
-                    btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                    btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                }), null);
-            }
-        }
-
-        private void BtnLogin_LeftClick(object sender, EventArgs e)
-        {
-            if (externalAccountService.IsLoggedIn)
-            {
-                externalAccountService.Logout();
-                UpdateLoginUI();
-            }
-            else
-            {
-                // 打开登录窗口
-                loginWindow.Open();
-                loginWindow.Enable();
-            }
         }
 
         public string GetSwitchName() => "Main Menu".L10N("Client:Main:MainMenu");

@@ -1,4 +1,4 @@
-﻿using Rampastring.XNAUI.XNAControls;
+using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using Rampastring.XNAUI;
@@ -12,6 +12,10 @@ using System.Threading;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.Online.EventArguments;
 using ClientCore.Extensions;
+using ClientCore.ExternalAccount;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace DTAClient.DXGUI.Generic
 {
@@ -37,12 +41,14 @@ namespace DTAClient.DXGUI.Generic
         public TopBar(
             WindowManager windowManager,
             CnCNetManager connectionManager,
-            PrivateMessageHandler privateMessageHandler
+            PrivateMessageHandler privateMessageHandler,
+            ExternalAccountService externalAccountService
         ) : base(windowManager)
         {
             downTimeWaitTime = TimeSpan.FromSeconds(DOWN_TIME_WAIT_SECONDS);
             this.connectionManager = connectionManager;
             this.privateMessageHandler = privateMessageHandler;
+            this.externalAccountService = externalAccountService;
         }
 
         public SwitchType LastSwitchType { get; private set; }
@@ -62,10 +68,16 @@ namespace DTAClient.DXGUI.Generic
         private XNALabel lblDate;
         private XNALabel lblCnCNetStatus;
         private XNALabel lblCnCNetPlayerCount;
-        private XNALabel lblConnectionStatus;
+            private XNALabel lblConnectionStatus;
+        private XNALabel lblUserInfo;
+        private XNAClientButton btnAvatar;
+        private XNAClientButton btnAccount;
+        private LoginWindow loginWindow;
+        private DarkeningPanel loginWindowPanel;
 
         private CnCNetManager connectionManager;
         private readonly PrivateMessageHandler privateMessageHandler;
+        private readonly ExternalAccountService externalAccountService;
 
         private CancellationTokenSource cncnetPlayerCountCancellationSource;
         private static readonly object locker = new object();
@@ -173,9 +185,29 @@ namespace DTAClient.DXGUI.Generic
             btnLogout.AllowClick = false;
             btnLogout.LeftClick += BtnLogout_LeftClick;
 
+            btnAccount = new XNAClientButton(WindowManager);
+            btnAccount.Name = nameof(btnAccount);
+            btnAccount.ClientRectangle = new Rectangle(btnLogout.X - 85, 9, 75, 23);
+            btnAccount.FontIndex = 1;
+            btnAccount.Text = "Login".L10N("Client:Main:Login");
+            btnAccount.LeftClick += BtnAccount_LeftClick;
+
+            lblUserInfo = new XNALabel(WindowManager);
+            lblUserInfo.Name = nameof(lblUserInfo);
+            lblUserInfo.FontIndex = 1;
+            lblUserInfo.TextColor = Color.White;
+            lblUserInfo.ClientRectangle = new Rectangle(btnAccount.X - 200, 11, 0, 0);
+
+            btnAvatar = new XNAClientButton(WindowManager);
+            btnAvatar.Name = nameof(btnAvatar);
+            btnAvatar.ClientRectangle = new Rectangle(lblUserInfo.X - 38, 7, 32, 32);
+            btnAvatar.AllowClick = false;
+            btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+            btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+
             btnOptions = new XNAClientButton(WindowManager);
             btnOptions.Name = nameof(btnOptions);
-            btnOptions.ClientRectangle = new Rectangle(btnLogout.X - 122, 9, 110, 23);
+            btnOptions.ClientRectangle = new Rectangle(btnAvatar.X - 122, 9, 110, 23);
             btnOptions.Text = "Options (F12)".L10N("Client:Main:OptionsF12");
             btnOptions.LeftClick += BtnOptions_LeftClick;
 
@@ -191,6 +223,9 @@ namespace DTAClient.DXGUI.Generic
             AddChild(lblTime);
             AddChild(lblDate);
             AddChild(btnLogout);
+            AddChild(btnAccount);
+            AddChild(lblUserInfo);
+            AddChild(btnAvatar);
             AddChild(lblConnectionStatus);
 
             if (ClientConfiguration.Instance.DisplayPlayerCountInTopBar)
@@ -225,6 +260,19 @@ namespace DTAClient.DXGUI.Generic
             connectionManager.ConnectAttemptFailed += ConnectionManager_ConnectAttemptFailed;
 
             privateMessageHandler.UnreadMessageCountUpdated += PrivateMessageHandler_UnreadMessageCountUpdated;
+
+            externalAccountService.LoginStateChanged += (s, e) => WindowManager.AddCallback(new Action(() => UpdateUserUI()), null);
+            externalAccountService.UserInfoUpdated += (s, e) => WindowManager.AddCallback(new Action(() => UpdateUserUI()), null);
+
+            loginWindow = new LoginWindow(WindowManager, externalAccountService);
+            loginWindowPanel = new DarkeningPanel(WindowManager);
+            loginWindowPanel.Alpha = 0.0f;
+            AddChild(loginWindowPanel);
+            loginWindowPanel.AddChild(loginWindow);
+            loginWindow.Disable();
+            loginWindowPanel.SetPositionAndSize();
+
+            UpdateUserUI();
         }
 
         private void PrivateMessageHandler_UnreadMessageCountUpdated(object sender, UnreadMessageCountEventArgs args)
@@ -292,6 +340,97 @@ namespace DTAClient.DXGUI.Generic
             connectionManager.Disconnect();
             LogoutEvent?.Invoke(this, null);
             SwitchToPrimary();
+        }
+
+        private void BtnAccount_LeftClick(object sender, EventArgs e)
+        {
+            if (externalAccountService.IsLoggedIn)
+            {
+                externalAccountService.Logout();
+                UpdateUserUI();
+            }
+            else
+            {
+                loginWindow.Open();
+                loginWindow.Enable();
+            }
+        }
+
+        private void UpdateUserUI()
+        {
+            if (externalAccountService.IsLoggedIn)
+            {
+                var user = externalAccountService.CurrentUser;
+                btnAccount.Text = "Logout".L10N("Client:Main:Logout");
+                lblUserInfo.Text = user?.DisplayName ?? user?.Username ?? "Unknown";
+
+                if (user != null && !string.IsNullOrEmpty(user.AvatarUrl))
+                {
+                    LoadAvatarAsync(user.AvatarUrl);
+                }
+                else
+                {
+                    btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                    btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                }
+
+                lblUserInfo.Visible = true;
+                btnAvatar.Visible = true;
+            }
+            else
+            {
+                btnAccount.Text = "Login".L10N("Client:Main:Login");
+                lblUserInfo.Text = ProgramConstants.PLAYERNAME + " (游客)";
+                btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                lblUserInfo.Visible = true;
+                btnAvatar.Visible = true;
+            }
+        }
+
+        private async void LoadAvatarAsync(string avatarUrl)
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.Timeout = TimeSpan.FromSeconds(10);
+                    var response = await httpClient.GetAsync(avatarUrl);
+                    response.EnsureSuccessStatusCode();
+
+                    byte[] imageData = await response.Content.ReadAsByteArrayAsync();
+
+                    WindowManager.AddCallback(new Action(() =>
+                    {
+                        try
+                        {
+                            using (var memoryStream = new MemoryStream(imageData))
+                            using (var image = SixLabors.ImageSharp.Image.Load(memoryStream))
+                            {
+                                var texture = AssetLoader.TextureFromImage(image);
+                                if (texture != null)
+                                {
+                                    btnAvatar.IdleTexture = texture;
+                                    btnAvatar.HoverTexture = texture;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                            btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                        }
+                    }), null);
+                }
+            }
+            catch
+            {
+                WindowManager.AddCallback(new Action(() =>
+                {
+                    btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                    btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                }), null);
+            }
         }
 
         private void ConnectionManager_Connected(object sender, EventArgs e)
