@@ -42,13 +42,15 @@ namespace DTAClient.DXGUI.Generic
             WindowManager windowManager,
             CnCNetManager connectionManager,
             PrivateMessageHandler privateMessageHandler,
-            ExternalAccountService externalAccountService
+            ExternalAccountService externalAccountService,
+            LoginWindow window
         ) : base(windowManager)
         {
             downTimeWaitTime = TimeSpan.FromSeconds(DOWN_TIME_WAIT_SECONDS);
             this.connectionManager = connectionManager;
             this.privateMessageHandler = privateMessageHandler;
             this.externalAccountService = externalAccountService;
+            loginWindow = window;
         }
 
         public SwitchType LastSwitchType { get; private set; }
@@ -73,7 +75,6 @@ namespace DTAClient.DXGUI.Generic
         private XNAClientButton btnAvatar;
         private XNAClientButton btnAccount;
         private LoginWindow loginWindow;
-        private DarkeningPanel loginWindowPanel;
 
         private CnCNetManager connectionManager;
         private readonly PrivateMessageHandler privateMessageHandler;
@@ -263,14 +264,6 @@ namespace DTAClient.DXGUI.Generic
 
             externalAccountService.LoginStateChanged += (s, e) => WindowManager.AddCallback(new Action(() => UpdateUserUI()), null);
             externalAccountService.UserInfoUpdated += (s, e) => WindowManager.AddCallback(new Action(() => UpdateUserUI()), null);
-
-            loginWindow = new LoginWindow(WindowManager, externalAccountService);
-            loginWindowPanel = new DarkeningPanel(WindowManager);
-            loginWindowPanel.Alpha = 0.0f;
-            AddChild(loginWindowPanel);
-            loginWindowPanel.AddChild(loginWindow);
-            loginWindow.Disable();
-            loginWindowPanel.SetPositionAndSize();
 
             UpdateUserUI();
         }

@@ -167,13 +167,12 @@ namespace DTAClient.DXGUI.Generic
             btnCancel.AllowClick = true;
             _accountService.LastError = null;
 
-            // 确保父面板已正确设置尺寸
             if (Parent is DarkeningPanel darkeningPanel)
             {
                 darkeningPanel.SetPositionAndSize();
+                darkeningPanel.Show();
             }
 
-            // 在父面板中居中（DarkeningPanel覆盖整个屏幕，等同于在屏幕中居中）
             CenterOnParent();
             Enable();
         }
