@@ -639,6 +639,7 @@ namespace DTAClient.DXGUI.Generic
                 updateWindow,
                 extrasWindow,
                 loginWindow,
+                editProfileWindow,
             })
                 control.Disable();
 

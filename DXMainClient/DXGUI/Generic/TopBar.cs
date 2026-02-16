@@ -80,7 +80,6 @@ namespace DTAClient.DXGUI.Generic
         private XNAClientButton btnAccount;
         private LoginWindow loginWindow;
         private EditProfileWindow editProfileWindow;
-        private UserContextMenu userContextMenu;
 
         private CnCNetManager connectionManager;
         private readonly PrivateMessageHandler privateMessageHandler;
@@ -208,16 +207,14 @@ namespace DTAClient.DXGUI.Generic
             lblUserInfo.TextColor = Color.White;
             lblUserInfo.ClientRectangle = new Rectangle(btnAccount.X - 200, 11, 0, 0);
             lblUserInfo.LeftClick += LblUserInfo_LeftClick;
-            lblUserInfo.RightClick += UserArea_RightClick;
 
             btnAvatar = new XNAClientButton(WindowManager);
             btnAvatar.Name = nameof(btnAvatar);
-            btnAvatar.ClientRectangle = new Rectangle(lblUserInfo.X - 38, 7, 32, 32);
+            btnAvatar.ClientRectangle = new Rectangle(lblUserInfo.X - 38, 3, 31, 31);
             btnAvatar.AllowClick = true;
             btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
             btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
             btnAvatar.LeftClick += BtnAvatar_LeftClick;
-            btnAvatar.RightClick += UserArea_RightClick;
 
             btnOptions = new XNAClientButton(WindowManager);
             btnOptions.Name = nameof(btnOptions);
@@ -264,10 +261,6 @@ namespace DTAClient.DXGUI.Generic
             lblConnectionStatus.CenterOnParent();
 
             base.Initialize();
-
-            userContextMenu = new UserContextMenu(WindowManager, () => editProfileWindow.Open());
-            AddChild(userContextMenu);
-            userContextMenu.Disable();
 
             Keyboard.OnKeyPressed += Keyboard_OnKeyPressed;
             connectionManager.Connected += ConnectionManager_Connected;
@@ -621,15 +614,6 @@ namespace DTAClient.DXGUI.Generic
                 lblDate.Text = dateText;
 
             base.Update(gameTime);
-        }
-
-        private void UserArea_RightClick(object sender, EventArgs e)
-        {
-            if (!externalAccountService.IsLoggedIn)
-                return;
-
-            var cursorLocation = Cursor.Location;
-            userContextMenu.Open(cursorLocation);
         }
 
         private void BtnAvatar_LeftClick(object sender, EventArgs e)

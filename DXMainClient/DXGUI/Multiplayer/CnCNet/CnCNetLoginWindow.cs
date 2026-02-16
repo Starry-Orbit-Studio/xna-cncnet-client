@@ -121,7 +121,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             btnLogout = new XNAClientButton(WindowManager);
             btnLogout.Name = nameof(btnLogout);
             btnLogout.Text = "Logout".L10N("Client:Main:Logout");
-            btnLogout.ClientRectangle = new Rectangle(130, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
+            btnLogout.ClientRectangle = new Rectangle(104, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             btnLogout.LeftClick += BtnLogout_LeftClick;
 
             lblAccountInfo = new XNALabel(WindowManager);

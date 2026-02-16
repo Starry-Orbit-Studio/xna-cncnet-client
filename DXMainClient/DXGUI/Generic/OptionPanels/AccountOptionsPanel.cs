@@ -26,6 +26,7 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
         private XNATextBox tbAvatar;
 
         private XNAClientButton btnAvatarPreview;
+        private XNAPanel pnlAvatarPreview;
         private XNAClientButton btnSave;
 
         private XNAListBox lbLinkedAccounts;
@@ -79,9 +80,15 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
             btnAvatarPreview = new XNAClientButton(WindowManager);
             btnAvatarPreview.Name = nameof(btnAvatarPreview);
             btnAvatarPreview.Text = "Preview".L10N("Client:DTAConfig:Preview");
-            btnAvatarPreview.ClientRectangle = new Rectangle(380, y - 3, 80, 23);
+            btnAvatarPreview.ClientRectangle = new Rectangle(380, y - 3, UIDesignConstants.BUTTON_WIDTH_75, UIDesignConstants.BUTTON_HEIGHT);
             btnAvatarPreview.LeftClick += BtnAvatarPreview_LeftClick;
             AddChild(btnAvatarPreview);
+
+            pnlAvatarPreview = new XNAPanel(WindowManager);
+            pnlAvatarPreview.Name = nameof(pnlAvatarPreview);
+            pnlAvatarPreview.ClientRectangle = new Rectangle(380 + UIDesignConstants.BUTTON_WIDTH_75 + 8, y - 3, 80, 80);
+            pnlAvatarPreview.Visible = false;
+            AddChild(pnlAvatarPreview);
 
             y += 40;
 
@@ -99,7 +106,7 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
             btnUnlink = new XNAClientButton(WindowManager);
             btnUnlink.Name = nameof(btnUnlink);
             btnUnlink.Text = "Unlink".L10N("Client:DTAConfig:Unlink");
-            btnUnlink.ClientRectangle = new Rectangle(320, y + 20, 80, 23);
+            btnUnlink.ClientRectangle = new Rectangle(320, y + 20, UIDesignConstants.BUTTON_WIDTH_75, UIDesignConstants.BUTTON_HEIGHT);
             btnUnlink.LeftClick += BtnUnlink_LeftClick;
             AddChild(btnUnlink);
 
@@ -116,28 +123,28 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
             btnLinkGitHub = new XNAClientButton(WindowManager);
             btnLinkGitHub.Name = nameof(btnLinkGitHub);
             btnLinkGitHub.Text = "GitHub".L10N("Client:DTAConfig:GitHub");
-            btnLinkGitHub.ClientRectangle = new Rectangle(12, y, 80, 23);
+            btnLinkGitHub.ClientRectangle = new Rectangle(12, y, UIDesignConstants.BUTTON_WIDTH_75, UIDesignConstants.BUTTON_HEIGHT);
             btnLinkGitHub.LeftClick += BtnLinkGitHub_LeftClick;
             AddChild(btnLinkGitHub);
 
             btnLinkQQ = new XNAClientButton(WindowManager);
             btnLinkQQ.Name = nameof(btnLinkQQ);
             btnLinkQQ.Text = "QQ".L10N("Client:DTAConfig:QQ");
-            btnLinkQQ.ClientRectangle = new Rectangle(100, y, 80, 23);
+            btnLinkQQ.ClientRectangle = new Rectangle(100, y, UIDesignConstants.BUTTON_WIDTH_75, UIDesignConstants.BUTTON_HEIGHT);
             btnLinkQQ.LeftClick += BtnLinkQQ_LeftClick;
             AddChild(btnLinkQQ);
 
             btnLinkWeChat = new XNAClientButton(WindowManager);
             btnLinkWeChat.Name = nameof(btnLinkWeChat);
             btnLinkWeChat.Text = "WeChat".L10N("Client:DTAConfig:WeChat");
-            btnLinkWeChat.ClientRectangle = new Rectangle(188, y, 80, 23);
+            btnLinkWeChat.ClientRectangle = new Rectangle(188, y, UIDesignConstants.BUTTON_WIDTH_75, UIDesignConstants.BUTTON_HEIGHT);
             btnLinkWeChat.LeftClick += BtnLinkWeChat_LeftClick;
             AddChild(btnLinkWeChat);
 
             btnLinkEmail = new XNAClientButton(WindowManager);
             btnLinkEmail.Name = nameof(btnLinkEmail);
             btnLinkEmail.Text = "Email".L10N("Client:DTAConfig:Email");
-            btnLinkEmail.ClientRectangle = new Rectangle(276, y, 80, 23);
+            btnLinkEmail.ClientRectangle = new Rectangle(276, y, UIDesignConstants.BUTTON_WIDTH_75, UIDesignConstants.BUTTON_HEIGHT);
             btnLinkEmail.LeftClick += BtnLinkEmail_LeftClick;
             AddChild(btnLinkEmail);
 
@@ -154,7 +161,7 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
             btnSave = new XNAClientButton(WindowManager);
             btnSave.Name = nameof(btnSave);
             btnSave.Text = "Save Profile".L10N("Client:DTAConfig:SaveProfile");
-            btnSave.ClientRectangle = new Rectangle(12, y, 120, 23);
+            btnSave.ClientRectangle = new Rectangle(12, y, UIDesignConstants.BUTTON_WIDTH_121, UIDesignConstants.BUTTON_HEIGHT);
             btnSave.LeftClick += BtnSave_LeftClick;
             AddChild(btnSave);
         }
@@ -240,8 +247,8 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
                                 var texture = AssetLoader.TextureFromImage(image);
                             if (texture != null)
                             {
-                                btnAvatarPreview.IdleTexture = texture;
-                                btnAvatarPreview.HoverTexture = texture;
+                                pnlAvatarPreview.BackgroundTexture = texture;
+                                pnlAvatarPreview.Visible = true;
                                 lblStatus.Text = "Avatar loaded successfully.".L10N("Client:DTAConfig:AvatarLoadedSuccessfully");
                                 lblStatus.TextColor = Color.LightGreen;
                             }
@@ -249,6 +256,7 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
                         }
                         catch
                         {
+                            pnlAvatarPreview.Visible = false;
                             lblStatus.Text = "Failed to load avatar image.".L10N("Client:DTAConfig:FailedToLoadAvatar");
                             lblStatus.TextColor = Color.Red;
                         }
@@ -259,6 +267,7 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
             {
                 WindowManager.AddCallback(new Action(() =>
                 {
+                    pnlAvatarPreview.Visible = false;
                     lblStatus.Text = "Failed to load avatar image.".L10N("Client:DTAConfig:FailedToLoadAvatar");
                     lblStatus.TextColor = Color.Red;
                 }), null);

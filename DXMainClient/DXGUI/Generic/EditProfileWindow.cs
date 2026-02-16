@@ -28,6 +28,7 @@ namespace DTAClient.DXGUI.Generic
         private XNATextBox tbAvatar;
 
         private XNAClientButton btnAvatarPreview;
+        private XNAPanel pnlAvatarPreview;
         private XNAClientButton btnSave;
         private XNAClientButton btnCancel;
 
@@ -82,6 +83,12 @@ namespace DTAClient.DXGUI.Generic
             btnAvatarPreview.ClientRectangle = new Rectangle(120, 140, 100, 23);
             btnAvatarPreview.LeftClick += BtnAvatarPreview_LeftClick;
             AddChild(btnAvatarPreview);
+
+            pnlAvatarPreview = new XNAPanel(WindowManager);
+            pnlAvatarPreview.Name = nameof(pnlAvatarPreview);
+            pnlAvatarPreview.ClientRectangle = new Rectangle(230, 140, 80, 80);
+            pnlAvatarPreview.Visible = false;
+            AddChild(pnlAvatarPreview);
 
             lblStatus = new XNALabel(WindowManager);
             lblStatus.Name = nameof(lblStatus);
@@ -204,8 +211,8 @@ namespace DTAClient.DXGUI.Generic
                                 var texture = AssetLoader.TextureFromImage(image);
                             if (texture != null)
                             {
-                                btnAvatarPreview.IdleTexture = texture;
-                                btnAvatarPreview.HoverTexture = texture;
+                                pnlAvatarPreview.BackgroundTexture = texture;
+                                pnlAvatarPreview.Visible = true;
                                 lblStatus.Text = "Avatar loaded successfully.".L10N("Client:Main:AvatarLoadedSuccessfully");
                                 lblStatus.TextColor = Color.LightGreen;
                             }
@@ -213,10 +220,9 @@ namespace DTAClient.DXGUI.Generic
                         }
                         catch
                         {
+                            pnlAvatarPreview.Visible = false;
                             lblStatus.Text = "Failed to load avatar image.".L10N("Client:Main:FailedToLoadAvatar");
                             lblStatus.TextColor = Color.Red;
-                            btnAvatarPreview.IdleTexture = _defaultAvatarTexture;
-                            btnAvatarPreview.HoverTexture = _defaultAvatarTexture;
                         }
                     }), null);
                 }
@@ -225,10 +231,9 @@ namespace DTAClient.DXGUI.Generic
             {
                 WindowManager.AddCallback(new Action(() =>
                 {
+                    pnlAvatarPreview.Visible = false;
                     lblStatus.Text = "Failed to load avatar image.".L10N("Client:Main:FailedToLoadAvatar");
                     lblStatus.TextColor = Color.Red;
-                    btnAvatarPreview.IdleTexture = _defaultAvatarTexture;
-                    btnAvatarPreview.HoverTexture = _defaultAvatarTexture;
                 }), null);
             }
         }
