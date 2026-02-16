@@ -1,4 +1,5 @@
-﻿using ClientCore;
+using ClientCore;
+using ClientCore.ExternalAccount;
 using ClientGUI;
 using DTAClient.Domain.Multiplayer;
 using DTAClient.Domain.Multiplayer.CnCNet;
@@ -37,7 +38,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             CnCNetGameLobby gameLobby, CnCNetGameLoadingLobby gameLoadingLobby,
             TopBar topBar, PrivateMessagingWindow pmWindow, TunnelHandler tunnelHandler,
             GameCollection gameCollection, CnCNetUserData cncnetUserData,
-            OptionsWindow optionsWindow, MapLoader mapLoader, Random random)
+            OptionsWindow optionsWindow, MapLoader mapLoader, Random random,
+            ExternalAccountService externalAccountService,
+            LoginWindow loginWindow)
             : base(windowManager)
         {
             this.connectionManager = connectionManager;
@@ -51,6 +54,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             this.optionsWindow = optionsWindow;
             this.mapLoader = mapLoader;
             this.random = random;
+            this.externalAccountService = externalAccountService;
+            this.accountLoginWindow = loginWindow;
 
             ctcpCommandHandlers = new CommandHandlerBase[]
             {
@@ -66,6 +71,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private CnCNetManager connectionManager;
         private CnCNetUserData cncnetUserData;
         private readonly OptionsWindow optionsWindow;
+        private readonly ExternalAccountService externalAccountService;
 
         private PlayerListBox lbPlayerList;
         private ChatListBox lbChatMessages;
@@ -114,6 +120,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private TunnelHandler tunnelHandler;
 
         private CnCNetLoginWindow loginWindow;
+        private LoginWindow accountLoginWindow;
 
         private TopBar topBar;
 
@@ -586,9 +593,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             connectionManager.BannedFromChannel += ConnectionManager_BannedFromChannel;
 
-            loginWindow = new CnCNetLoginWindow(WindowManager);
+            loginWindow = new CnCNetLoginWindow(WindowManager, externalAccountService);
             loginWindow.Connect += LoginWindow_Connect;
             loginWindow.Cancelled += LoginWindow_Cancelled;
+            loginWindow.LoginRequested += LoginWindow_LoginRequested;
 
             var loginWindowPanel = new DarkeningPanel(WindowManager);
             loginWindowPanel.Alpha = 0.0f;
@@ -738,14 +746,16 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             SetLogOutButtonText();
         }
 
-        /// <summary>
-        /// Hides the login window and the CnCNet lobby if the user
-        /// cancels connecting to CnCNet in the login dialog.
-        /// </summary>
         private void LoginWindow_Cancelled(object sender, EventArgs e)
         {
             topBar.SwitchToPrimary();
             loginWindow.Disable();
+        }
+
+        private void LoginWindow_LoginRequested(object sender, EventArgs e)
+        {
+            accountLoginWindow.Open();
+            accountLoginWindow.Enable();
         }
 
         private void GameLoadingLobby_GameLeft(object sender, EventArgs e)
