@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Rampastring.XNAUI;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Rampastring.XNAUI.Input;
 using Microsoft.Xna.Framework.Input;
 using DTAClient.Online;
@@ -15,6 +16,7 @@ using ClientCore.Extensions;
 using ClientCore.ExternalAccount;
 using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace DTAClient.DXGUI.Generic
@@ -363,8 +365,9 @@ namespace DTAClient.DXGUI.Generic
                 }
                 else
                 {
-                    btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                    btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                    var defaultAvatar = LoadDefaultAvatar();
+                    btnAvatar.IdleTexture = defaultAvatar;
+                    btnAvatar.HoverTexture = defaultAvatar;
                 }
 
                 lblUserInfo.Visible = true;
@@ -374,11 +377,34 @@ namespace DTAClient.DXGUI.Generic
             {
                 btnAccount.Text = "Login".L10N("Client:Main:Login");
                 lblUserInfo.Text = ProgramConstants.PLAYERNAME + " (游客)";
-                btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                var defaultAvatar = LoadDefaultAvatar();
+                btnAvatar.IdleTexture = defaultAvatar;
+                btnAvatar.HoverTexture = defaultAvatar;
                 lblUserInfo.Visible = true;
                 btnAvatar.Visible = true;
             }
+        }
+
+        private Texture2D LoadDefaultAvatar()
+        {
+            try
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                using (var stream = assembly.GetManifestResourceStream("DTAClient.Icons.esicon.png"))
+                {
+                    if (stream != null)
+                    {
+                        using (var image = SixLabors.ImageSharp.Image.Load(stream))
+                        {
+                            return AssetLoader.TextureFromImage(image);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return AssetLoader.LoadTexture("MainMenu/button.png");
         }
 
         private async void LoadAvatarAsync(string avatarUrl)
@@ -410,8 +436,9 @@ namespace DTAClient.DXGUI.Generic
                         }
                         catch
                         {
-                            btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                            btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                            var defaultAvatar = LoadDefaultAvatar();
+                            btnAvatar.IdleTexture = defaultAvatar;
+                            btnAvatar.HoverTexture = defaultAvatar;
                         }
                     }), null);
                 }
@@ -420,8 +447,9 @@ namespace DTAClient.DXGUI.Generic
             {
                 WindowManager.AddCallback(new Action(() =>
                 {
-                    btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
-                    btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+                    var defaultAvatar = LoadDefaultAvatar();
+                    btnAvatar.IdleTexture = defaultAvatar;
+                    btnAvatar.HoverTexture = defaultAvatar;
                 }), null);
             }
         }

@@ -63,6 +63,26 @@ namespace ClientCore.ExternalAccount
             _settingsIni = new Rampastring.Tools.IniFile(settingsPath);
             
             LoadTokens();
+            
+            // 自动设置API基础地址
+            InitializeBaseAddress();
+        }
+
+        private void InitializeBaseAddress()
+        {
+            try
+            {
+                string apiBaseUrl = ClientConfiguration.Instance.ExternalAccountApiBaseUrl;
+                if (!string.IsNullOrEmpty(apiBaseUrl))
+                {
+                    SetBaseAddress(apiBaseUrl);
+                    Rampastring.Tools.Logger.Log($"ExternalAccountService: 自动设置BaseAddress为 {apiBaseUrl}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Rampastring.Tools.Logger.Log($"ExternalAccountService: 设置BaseAddress失败 - {ex.Message}");
+            }
         }
 
         private string GetUserAgent()
