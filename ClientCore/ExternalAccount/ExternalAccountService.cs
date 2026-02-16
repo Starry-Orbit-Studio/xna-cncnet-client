@@ -33,6 +33,9 @@ namespace ClientCore.ExternalAccount
         private string _loginEndpoint = "api/auth/login";
         private string _refreshEndpoint = "api/auth/refresh";
         private string _userInfoEndpoint = "users/me";
+        private string _updateProfileEndpoint = "api/v1/users/me";
+        private string _linkProviderEndpoint = "api/v1/link";
+        private string _unlinkEndpoint = "api/v1/auth/unlink";
 
         public event EventHandler LoginStateChanged;
         public event EventHandler UserInfoUpdated;
@@ -444,6 +447,209 @@ namespace ClientCore.ExternalAccount
             _settingsIni.SetStringValue(TOKEN_SECTION, USER_INFO_KEY, string.Empty);
             _settingsIni.WriteIniFile();
         }
+
+        /// <summary>
+        /// 更新用户资料
+        /// </summary>
+        public async Task<bool> UpdateProfileAsync(string nickname, string avatar = null)
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_authToken))
+            {
+                LastError = "用户未登录";
+                return false;
+            }
+
+            try
+            {
+                var request = new UpdateProfileRequest
+                {
+                    Nickname = nickname,
+                    Avatar = avatar
+                };
+
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Put, _updateProfileEndpoint);
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+                httpRequest.Content = content;
+
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    LastError = $"更新用户资料失败: {(int)response.StatusCode} {response.ReasonPhrase}";
+                    return false;
+                }
+
+                var responseJson = await response.Content.ReadAsStringAsync();
+                _userInfo = JsonSerializer.Deserialize<UserInfo>(responseJson);
+
+                UserInfoUpdated?.Invoke(this, EventArgs.Empty);
+                SaveTokens();
+                return true;
+            }
+            catch (HttpRequestException ex)
+            {
+                LastError = $"网络连接失败: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"更新用户资料失败: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LastError = $"更新用户资料过程出错: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"更新用户资料失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 绑定第三方账号
+        /// </summary>
+        public async Task<bool> LinkProviderAsync(string provider, string code, string state)
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_authToken))
+            {
+                LastError = "用户未登录";
+                return false;
+            }
+
+            try
+            {
+                var request = new LinkProviderRequest
+                {
+                    Code = code,
+                    State = state
+                };
+
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var endpoint = $"{_linkProviderEndpoint}/{provider}";
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+                httpRequest.Content = content;
+
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (response.StatusCode != System.Net.HttpStatusCode.NoContent)
+                {
+                    LastError = $"绑定账号失败: {(int)response.StatusCode} {response.ReasonPhrase}";
+                    return false;
+                }
+
+                await FetchUserInfoAsync();
+                return true;
+            }
+            catch (HttpRequestException ex)
+            {
+                LastError = $"网络连接失败: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"绑定账号失败: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LastError = $"绑定账号过程出错: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"绑定账号失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 按 provider 解绑第三方账号
+        /// </summary>
+        public async Task<bool> UnlinkProviderByProviderAsync(string provider)
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_authToken))
+            {
+                LastError = "用户未登录";
+                return false;
+            }
+
+            try
+            {
+                var endpoint = $"{_unlinkEndpoint}/provider/{provider}";
+                var httpRequest = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    LastError = $"解绑账号失败: {(int)response.StatusCode} {response.ReasonPhrase}";
+                    return false;
+                }
+
+                await FetchUserInfoAsync();
+                return true;
+            }
+            catch (HttpRequestException ex)
+            {
+                LastError = $"网络连接失败: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"解绑账号失败: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LastError = $"解绑账号过程出错: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"解绑账号失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 按 identity_id 解绑第三方账号
+        /// </summary>
+        public async Task<bool> UnlinkProviderByIdentityAsync(int identityId)
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_authToken))
+            {
+                LastError = "用户未登录";
+                return false;
+            }
+
+            try
+            {
+                var request = new UnlinkProviderRequest
+                {
+                    IdentityId = identityId
+                };
+
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Delete, _unlinkEndpoint);
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+                httpRequest.Content = content;
+
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    LastError = $"解绑账号失败: {(int)response.StatusCode} {response.ReasonPhrase}";
+                    return false;
+                }
+
+                await FetchUserInfoAsync();
+                return true;
+            }
+            catch (HttpRequestException ex)
+            {
+                LastError = $"网络连接失败: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"解绑账号失败: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LastError = $"解绑账号过程出错: {ex.Message}";
+                Rampastring.Tools.Logger.Log($"解绑账号失败: {ex.Message}");
+                return false;
+            }
+        }
     }
 
     /// <summary>
@@ -473,18 +679,54 @@ namespace ClientCore.ExternalAccount
     }
 
     /// <summary>
+    /// 更新用户资料请求
+    /// </summary>
+    public class UpdateProfileRequest
+    {
+        [JsonPropertyName("nickname")]
+        public string Nickname { get; set; }
+
+        [JsonPropertyName("avatar")]
+        public string Avatar { get; set; }
+    }
+
+    /// <summary>
+    /// 绑定第三方账号请求
+    /// </summary>
+    public class LinkProviderRequest
+    {
+        [JsonPropertyName("code")]
+        public string Code { get; set; }
+
+        [JsonPropertyName("state")]
+        public string State { get; set; }
+    }
+
+    /// <summary>
+    /// 解绑第三方账号请求
+    /// </summary>
+    public class UnlinkProviderRequest
+    {
+        [JsonPropertyName("identity_id")]
+        public int IdentityId { get; set; }
+    }
+
+    /// <summary>
     /// 身份信息（OAuth提供商身份）
     /// </summary>
     public class IdentityInfo
     {
         [JsonPropertyName("provider")]
         public string Provider { get; set; }
-        
+
         [JsonPropertyName("provider_uid")]
         public string IdentityId { get; set; }
-        
+
         [JsonPropertyName("profile_url")]
         public string ProfileUrl { get; set; }
+
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
     }
 
     /// <summary>
@@ -494,38 +736,38 @@ namespace ClientCore.ExternalAccount
     {
         [JsonPropertyName("nickname")]
         public string Nickname { get; set; }
-        
+
         [JsonPropertyName("avatar")]
         public string Avatar { get; set; }
-        
+
         [JsonPropertyName("id")]
         public int Id { get; set; }
-        
+
         [JsonPropertyName("level")]
         public int Level { get; set; }
-        
+
         [JsonPropertyName("experience_points")]
         public int ExperiencePoints { get; set; }
-        
+
         [JsonPropertyName("last_login_at")]
         public DateTime? LastLoginAt { get; set; }
-        
+
         [JsonPropertyName("identities")]
         public List<IdentityInfo> Identities { get; set; } = new List<IdentityInfo>();
-        
+
         [JsonPropertyName("online_status")]
         public string OnlineStatus { get; set; }
-        
+
         // 向后兼容的属性
         [JsonIgnore]
         public string Username => Nickname;
-        
+
         [JsonIgnore]
         public string DisplayName => Nickname;
-        
+
         [JsonIgnore]
         public string AvatarUrl => Avatar;
-        
+
         [JsonIgnore]
         public string Email => Identities?.FirstOrDefault(i => i.Provider == "email")?.IdentityId ?? string.Empty;
     }

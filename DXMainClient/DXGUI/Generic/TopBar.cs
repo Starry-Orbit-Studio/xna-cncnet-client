@@ -45,7 +45,8 @@ namespace DTAClient.DXGUI.Generic
             CnCNetManager connectionManager,
             PrivateMessageHandler privateMessageHandler,
             ExternalAccountService externalAccountService,
-            LoginWindow window
+            LoginWindow window,
+            EditProfileWindow editProfileWindow
         ) : base(windowManager)
         {
             downTimeWaitTime = TimeSpan.FromSeconds(DOWN_TIME_WAIT_SECONDS);
@@ -53,6 +54,7 @@ namespace DTAClient.DXGUI.Generic
             this.privateMessageHandler = privateMessageHandler;
             this.externalAccountService = externalAccountService;
             loginWindow = window;
+            this.editProfileWindow = editProfileWindow;
         }
 
         public SwitchType LastSwitchType { get; private set; }
@@ -77,10 +79,15 @@ namespace DTAClient.DXGUI.Generic
         private XNAClientButton btnAvatar;
         private XNAClientButton btnAccount;
         private LoginWindow loginWindow;
+        private EditProfileWindow editProfileWindow;
+        private UserContextMenu userContextMenu;
 
         private CnCNetManager connectionManager;
         private readonly PrivateMessageHandler privateMessageHandler;
         private readonly ExternalAccountService externalAccountService;
+
+        private DateTime _lastAvatarClickTime;
+        private DateTime _lastUserInfoClickTime;
 
         private CancellationTokenSource cncnetPlayerCountCancellationSource;
         private static readonly object locker = new object();
@@ -200,13 +207,17 @@ namespace DTAClient.DXGUI.Generic
             lblUserInfo.FontIndex = 1;
             lblUserInfo.TextColor = Color.White;
             lblUserInfo.ClientRectangle = new Rectangle(btnAccount.X - 200, 11, 0, 0);
+            lblUserInfo.LeftClick += LblUserInfo_LeftClick;
+            lblUserInfo.RightClick += UserArea_RightClick;
 
             btnAvatar = new XNAClientButton(WindowManager);
             btnAvatar.Name = nameof(btnAvatar);
             btnAvatar.ClientRectangle = new Rectangle(lblUserInfo.X - 38, 7, 32, 32);
-            btnAvatar.AllowClick = false;
+            btnAvatar.AllowClick = true;
             btnAvatar.IdleTexture = AssetLoader.LoadTexture("MainMenu/button.png");
             btnAvatar.HoverTexture = AssetLoader.LoadTexture("MainMenu/button.png");
+            btnAvatar.LeftClick += BtnAvatar_LeftClick;
+            btnAvatar.RightClick += UserArea_RightClick;
 
             btnOptions = new XNAClientButton(WindowManager);
             btnOptions.Name = nameof(btnOptions);
@@ -253,6 +264,10 @@ namespace DTAClient.DXGUI.Generic
             lblConnectionStatus.CenterOnParent();
 
             base.Initialize();
+
+            userContextMenu = new UserContextMenu(WindowManager, () => editProfileWindow.Open());
+            AddChild(userContextMenu);
+            userContextMenu.Disable();
 
             Keyboard.OnKeyPressed += Keyboard_OnKeyPressed;
             connectionManager.Connected += ConnectionManager_Connected;
@@ -606,6 +621,41 @@ namespace DTAClient.DXGUI.Generic
                 lblDate.Text = dateText;
 
             base.Update(gameTime);
+        }
+
+        private void UserArea_RightClick(object sender, EventArgs e)
+        {
+            if (!externalAccountService.IsLoggedIn)
+                return;
+
+            var cursorLocation = Cursor.Location;
+            userContextMenu.Open(cursorLocation);
+        }
+
+        private void BtnAvatar_LeftClick(object sender, EventArgs e)
+        {
+            if (!externalAccountService.IsLoggedIn)
+                return;
+
+            var now = DateTime.Now;
+            if ((now - _lastAvatarClickTime).TotalMilliseconds < 500)
+            {
+                editProfileWindow.Open();
+            }
+            _lastAvatarClickTime = now;
+        }
+
+        private void LblUserInfo_LeftClick(object sender, EventArgs e)
+        {
+            if (!externalAccountService.IsLoggedIn)
+                return;
+
+            var now = DateTime.Now;
+            if ((now - _lastUserInfoClickTime).TotalMilliseconds < 500)
+            {
+                editProfileWindow.Open();
+            }
+            _lastUserInfoClickTime = now;
         }
 
         public override void Draw(GameTime gameTime)

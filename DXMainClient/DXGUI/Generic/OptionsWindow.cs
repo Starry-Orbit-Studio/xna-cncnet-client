@@ -1,4 +1,4 @@
-﻿using ClientCore.Extensions;
+using ClientCore.Extensions;
 using ClientCore;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using ClientCore.Enums;
@@ -11,15 +11,17 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using ClientUpdater;
 using DTAClient.Domain;
+using ClientCore.ExternalAccount;
 
 namespace DTAClient.DXGUI.Generic
 {
     public class OptionsWindow : XNAWindow
     {
-        public OptionsWindow(WindowManager windowManager, GameCollection gameCollection, DirectDrawWrapperManager directDrawWrapperManager) : base(windowManager)
+        public OptionsWindow(WindowManager windowManager, GameCollection gameCollection, DirectDrawWrapperManager directDrawWrapperManager, ExternalAccountService externalAccountService) : base(windowManager)
         {
             this.gameCollection = gameCollection;
             this.directDrawWrapperManager = directDrawWrapperManager;
+            this.externalAccountService = externalAccountService;
         }
 
         public event EventHandler OnForceUpdate;
@@ -34,6 +36,7 @@ namespace DTAClient.DXGUI.Generic
 
         private readonly GameCollection gameCollection;
         private readonly DirectDrawWrapperManager directDrawWrapperManager;
+        private readonly ExternalAccountService externalAccountService;
 
         public override void Initialize()
         {
@@ -52,6 +55,7 @@ namespace DTAClient.DXGUI.Generic
             tabControl.AddTab("CnCNet".L10N("Client:DTAConfig:TabCnCNet"), UIDesignConstants.BUTTON_WIDTH_92);
             tabControl.AddTab("Updater".L10N("Client:DTAConfig:TabUpdater"), UIDesignConstants.BUTTON_WIDTH_92);
             tabControl.AddTab("Components".L10N("Client:DTAConfig:TabComponents"), UIDesignConstants.BUTTON_WIDTH_92);
+            tabControl.AddTab("Account".L10N("Client:DTAConfig:TabAccount"), UIDesignConstants.BUTTON_WIDTH_92);
             tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
 
             var btnCancel = new XNAClientButton(WindowManager);
@@ -71,6 +75,7 @@ namespace DTAClient.DXGUI.Generic
             componentsPanel = new ComponentsPanel(WindowManager, UserINISettings.Instance);
             var updaterOptionsPanel = new UpdaterOptionsPanel(WindowManager, UserINISettings.Instance);
             updaterOptionsPanel.OnForceUpdate += (s, e) => { Disable(); OnForceUpdate?.Invoke(this, EventArgs.Empty); };
+            var accountOptionsPanel = new AccountOptionsPanel(WindowManager, UserINISettings.Instance, externalAccountService);
 
             optionsPanels = new XNAOptionsPanel[]
             {
@@ -79,7 +84,8 @@ namespace DTAClient.DXGUI.Generic
                 new GameOptionsPanel(WindowManager, UserINISettings.Instance, topBar),
                 new CnCNetOptionsPanel(WindowManager, UserINISettings.Instance, gameCollection),
                 updaterOptionsPanel,
-                componentsPanel
+                componentsPanel,
+                accountOptionsPanel
             };
 
             if (ClientConfiguration.Instance.ModMode || Updater.UpdateMirrors == null || Updater.UpdateMirrors.Count < 1)

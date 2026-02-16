@@ -65,7 +65,8 @@ namespace DTAClient.DXGUI.Generic
             ExtrasWindow extrasWindow,
             DirectDrawWrapperManager directDrawWrapperManager,
             ExternalAccountService externalAccountService,
-            LoginWindow loginWindow
+            LoginWindow loginWindow,
+            EditProfileWindow editProfileWindow
         ) : base(windowManager)
         {
             this.lanLobby = lanLobby;
@@ -91,6 +92,7 @@ namespace DTAClient.DXGUI.Generic
             this.directDrawWrapperManager = directDrawWrapperManager;
             this.externalAccountService = externalAccountService;
             this.loginWindow = loginWindow;
+            this.editProfileWindow = editProfileWindow;
 
             this.cncnetLobby.UpdateCheck += CncnetLobby_UpdateCheck;
             isMediaPlayerAvailable = IsMediaPlayerAvailable();
@@ -129,6 +131,7 @@ namespace DTAClient.DXGUI.Generic
         private readonly DirectDrawWrapperManager directDrawWrapperManager;
         private readonly ExternalAccountService externalAccountService;
         private readonly LoginWindow loginWindow;
+        private readonly EditProfileWindow editProfileWindow;
 
         private XNAMessageBox firstRunMessageBox;
 
@@ -605,6 +608,7 @@ namespace DTAClient.DXGUI.Generic
                 updateWindow,
                 extrasWindow,
                 loginWindow,
+                editProfileWindow,
             })
                 DarkeningPanel.AddAndInitializeWithControl(WindowManager, control);
 

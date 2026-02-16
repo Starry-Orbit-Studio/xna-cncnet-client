@@ -94,13 +94,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             btnConnect = new XNAClientButton(WindowManager);
             btnConnect.Name = "btnConnect";
-            btnConnect.ClientRectangle = new Rectangle(130, Height - 35, 110, 23);
+            btnConnect.ClientRectangle = new Rectangle(130, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             btnConnect.Text = "Connect".L10N("Client:Main:ButtonConnect");
             btnConnect.LeftClick += BtnConnect_LeftClick;
 
             btnCancel = new XNAClientButton(WindowManager);
             btnCancel.Name = "btnCancel";
-            btnCancel.ClientRectangle = new Rectangle(Width - 122, btnConnect.Y, 110, 23);
+            btnCancel.ClientRectangle = new Rectangle(Width - UIDesignConstants.BUTTON_WIDTH_92 - 12, btnConnect.Y, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             btnCancel.Text = "Cancel".L10N("Client:Main:ButtonCancel");
             btnCancel.LeftClick += BtnCancel_LeftClick;
 
@@ -115,13 +115,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             btnLogin = new XNAClientButton(WindowManager);
             btnLogin.Name = nameof(btnLogin);
             btnLogin.Text = "Login".L10N("Client:Main:Login");
-            btnLogin.ClientRectangle = new Rectangle(12, Height - 35, 110, 23);
+            btnLogin.ClientRectangle = new Rectangle(12, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             btnLogin.LeftClick += BtnLogin_LeftClick;
 
             btnLogout = new XNAClientButton(WindowManager);
             btnLogout.Name = nameof(btnLogout);
             btnLogout.Text = "Logout".L10N("Client:Main:Logout");
-            btnLogout.ClientRectangle = new Rectangle(130, Height - 35, 110, 23);
+            btnLogout.ClientRectangle = new Rectangle(130, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             btnLogout.LeftClick += BtnLogout_LeftClick;
 
             lblAccountInfo = new XNALabel(WindowManager);
@@ -209,8 +209,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 btnLogin.Visible = false;
                 btnLogout.Visible = true;
                 btnConnect.Visible = true;
-                btnConnect.ClientRectangle = new Rectangle(12, Height - 35, 110, 23);
-                btnCancel.ClientRectangle = new Rectangle(Width - 122, btnConnect.Y, 110, 23);
+                btnConnect.ClientRectangle = new Rectangle(12, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
+                btnCancel.ClientRectangle = new Rectangle(Width - UIDesignConstants.BUTTON_WIDTH_92 - 12, btnConnect.Y, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             }
             else
             {
@@ -227,8 +227,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 btnLogin.Visible = true;
                 btnLogout.Visible = false;
                 btnConnect.Visible = true;
-                btnConnect.ClientRectangle = new Rectangle(130, Height - 35, 110, 23);
-                btnCancel.ClientRectangle = new Rectangle(Width - 122, btnConnect.Y, 110, 23);
+                btnConnect.ClientRectangle = new Rectangle(130, Height - 35, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
+                btnCancel.ClientRectangle = new Rectangle(Width - UIDesignConstants.BUTTON_WIDTH_92 - 12, btnConnect.Y, UIDesignConstants.BUTTON_WIDTH_92, UIDesignConstants.BUTTON_HEIGHT);
             }
         }
 
