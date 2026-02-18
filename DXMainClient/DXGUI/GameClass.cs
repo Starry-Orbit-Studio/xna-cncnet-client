@@ -12,6 +12,7 @@ using Rampastring.XNAUI;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using DTAClient.Domain.Multiplayer;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Campaign;
@@ -19,6 +20,7 @@ using DTAClient.DXGUI.Multiplayer;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
 using DTAClient.Online;
+using DTAClient.Online.Backend;
 using ClientGUI.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -259,9 +261,23 @@ namespace DTAClient.DXGUI
                             .AddSingleton<PrivateMessageHandler>()
                             .AddSingleton<MapLoader>()
                             .AddSingleton<Random>(GetRandom())
-                            .AddSingleton<DirectDrawWrapperManager>()
+                             .AddSingleton<DirectDrawWrapperManager>()
                             .AddSingleton<ClientCore.ExternalAccount.ExternalAccountService>()
-                            .AddSingleton<PlayerIdentityService>();
+                            .AddSingleton<PlayerIdentityService>()
+                            .AddSingleton<Online.Backend.BackendApiClient>(provider =>
+                            {
+                                var baseUrl = ClientConfiguration.Instance.BackendApiBaseUrl;
+                                var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+                                return new Online.Backend.BackendApiClient(baseUrl, httpClient);
+                            })
+                            .AddSingleton<Online.Backend.BackendWebSocketClient>(provider =>
+                            {
+                                var baseUrl = ClientConfiguration.Instance.BackendApiBaseUrl;
+                                return new Online.Backend.BackendWebSocketClient(baseUrl);
+                            })
+                            .AddSingleton<Online.Backend.BackendSessionManager>()
+                            .AddSingleton<Online.Backend.BackendSpaceManager>()
+                            .AddSingleton<Online.Backend.BackendManager>();
                         // singleton xna controls - same instance on each request
                         services
                             .AddSingletonXnaControl<LoadingScreen>()

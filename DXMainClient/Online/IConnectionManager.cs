@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace DTAClient.Online
 {
@@ -74,6 +74,8 @@ namespace DTAClient.Online
         bool GetDisconnectStatus();
 
         void OnServerLatencyTested(int candidateCount, int closerCount);
+
+        void Connect();
 
         //public EventHandler<ServerMessageEventArgs> WelcomeMessageReceived;
         //public EventHandler<ServerMessageEventArgs> GenericServerMessageReceived;

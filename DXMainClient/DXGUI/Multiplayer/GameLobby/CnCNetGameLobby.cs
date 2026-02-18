@@ -1,3 +1,4 @@
+#nullable enable
 using ClientCore;
 using ClientGUI;
 using DTAClient.Domain.Multiplayer;
@@ -6,6 +7,7 @@ using DTAClient.DXGUI.Generic;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby.CommandHandlers;
 using DTAClient.Online;
+using DTAClient.Online.Backend;
 using DTAClient.Online.EventArguments;
 using Microsoft.Xna.Framework;
 using Rampastring.Tools;
@@ -50,10 +52,17 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             MapLoader mapLoader, 
             DiscordHandler discordHandler,
             PrivateMessagingWindow pmWindow,
-            Random random
+            Random random,
+            Online.Backend.BackendManager? backendManager = null
         ) : base(windowManager, "MultiplayerGameLobby", topBar, mapLoader, discordHandler, pmWindow, random)
         {
             this.connectionManager = connectionManager;
+            this._backendManager = backendManager;
+
+            activeManager = ClientConfiguration.Instance.UseBackendInsteadOfIRC && backendManager != null
+                ? backendManager
+                : connectionManager;
+
             localGame = ClientConfiguration.Instance.LocalGame;
             this.tunnelHandler = tunnelHandler;
             this.gameCollection = gameCollection;
@@ -119,9 +128,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private XNAClientButton btnChangeTunnel;
         private XNAClientButton btnGameLobbySettings;
 
-        private Channel channel;
-        private CnCNetManager connectionManager;
-        private string localGame;
+         private Channel channel;
+         private CnCNetManager connectionManager;
+         private readonly Online.Backend.BackendManager? _backendManager;
+         private IConnectionManager activeManager;
+         private string localGame;
 
         private readonly GameHostInactiveChecker gameHostInactiveChecker;
 

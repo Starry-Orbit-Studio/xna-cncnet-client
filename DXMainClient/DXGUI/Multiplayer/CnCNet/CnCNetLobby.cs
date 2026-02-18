@@ -1,3 +1,4 @@
+#nullable enable
 using ClientCore;
 using ClientCore.ExternalAccount;
 using ClientGUI;
@@ -6,6 +7,7 @@ using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Generic;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
 using DTAClient.Online;
+using DTAClient.Online.Backend;
 using DTAClient.Online.EventArguments;
 using DTAClient.DXGUI.Multiplayer.GameLobby.CommandHandlers;
 using Microsoft.Xna.Framework.Graphics;
@@ -34,13 +36,14 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
     {
         public event EventHandler UpdateCheck;
 
-        public CnCNetLobby(WindowManager windowManager, CnCNetManager connectionManager,
-            CnCNetGameLobby gameLobby, CnCNetGameLoadingLobby gameLoadingLobby,
-            TopBar topBar, PrivateMessagingWindow pmWindow, TunnelHandler tunnelHandler,
-            GameCollection gameCollection, CnCNetUserData cncnetUserData,
-            OptionsWindow optionsWindow, MapLoader mapLoader, Random random,
-            ExternalAccountService externalAccountService,
-            LoginWindow loginWindow)
+    public CnCNetLobby(WindowManager windowManager, CnCNetManager connectionManager,
+        CnCNetGameLobby gameLobby, CnCNetGameLoadingLobby gameLoadingLobby,
+        TopBar topBar, PrivateMessagingWindow pmWindow, TunnelHandler tunnelHandler,
+        GameCollection gameCollection, CnCNetUserData cncnetUserData,
+        OptionsWindow optionsWindow, MapLoader mapLoader, Random random,
+        ExternalAccountService externalAccountService,
+        LoginWindow loginWindow,
+        Online.Backend.BackendManager? backendManager)
             : base(windowManager)
         {
             this.connectionManager = connectionManager;
@@ -56,6 +59,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             this.random = random;
             this.externalAccountService = externalAccountService;
             this.accountLoginWindow = loginWindow;
+            this._backendManager = backendManager;
 
             ctcpCommandHandlers = new CommandHandlerBase[]
             {
@@ -69,6 +73,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private MapLoader mapLoader;
 
         private CnCNetManager connectionManager;
+        private readonly Online.Backend.BackendManager? _backendManager;
+        private IConnectionManager activeManager;
         private CnCNetUserData cncnetUserData;
         private readonly OptionsWindow optionsWindow;
         private readonly ExternalAccountService externalAccountService;
@@ -166,6 +172,17 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         public override void Initialize()
         {
             invitationIndex = new InvitationIndex();
+
+            if (ClientConfiguration.Instance.UseBackendInsteadOfIRC && _backendManager != null)
+            {
+                activeManager = _backendManager;
+                Logger.Log("Using Backend Manager instead of IRC");
+            }
+            else
+            {
+                activeManager = connectionManager;
+                Logger.Log("Using IRC Connection Manager");
+            }
 
             ClientRectangle = new Rectangle(0, 0, WindowManager.RenderResolutionX - 64,
                 WindowManager.RenderResolutionY - 64);
@@ -740,7 +757,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         /// </summary>
         private void LoginWindow_Connect(object sender, EventArgs e)
         {
-            connectionManager.Connect();
+            activeManager.Connect();
             loginWindow.Disable();
 
             SetLogOutButtonText();

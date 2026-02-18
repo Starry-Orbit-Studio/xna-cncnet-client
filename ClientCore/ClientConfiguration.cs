@@ -550,7 +550,23 @@ namespace ClientCore
         /// 默认值: /users/me
         /// </summary>
         public string ExternalAccountUserInfoEndpoint => networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountUserInfoEndpoint", "/users/me");
-        
+
+        public string BackendApiBaseUrl
+        {
+            get
+            {
+                if (networkDefinitionsIni.KeyExists("ExternalAccount", "ApiBaseUrl"))
+                    return networkDefinitionsIni.GetStringValue("ExternalAccount", "ApiBaseUrl", string.Empty);
+
+                if (networkDefinitionsIni.KeyExists(SETTINGS, "BackendApiBaseUrl"))
+                    return networkDefinitionsIni.GetStringValue(SETTINGS, "BackendApiBaseUrl", string.Empty);
+
+                return "http://localhost:8000/api";
+            }
+        }
+
+        public bool UseBackendInsteadOfIRC => networkDefinitionsIni.GetBooleanValue(SETTINGS, "UseBackendInsteadOfIRC", false);
+
         /// <summary>
         /// 检查外部账户功能是否启用（通过检查API基础地址是否配置）
         /// </summary>
