@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -236,12 +237,288 @@ namespace DTAClient.Online.Backend.Models
         public DateTime JoinedAt { get; set; }
     }
 
+    public class OnlineUserResponse
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public string UserId { get; set; } = string.Empty;
+
+        [JsonPropertyName("nickname")]
+        public string Nickname { get; set; } = string.Empty;
+
+        [JsonPropertyName("avatar")]
+        public string? Avatar { get; set; }
+
+        [JsonPropertyName("level")]
+        public int Level { get; set; }
+
+        [JsonPropertyName("is_guest")]
+        public bool IsGuest { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("last_seen")]
+        public DateTime LastSeen { get; set; }
+    }
+
+    public class OnlineUsersResponse
+    {
+        [JsonPropertyName("users")]
+        public List<OnlineUserResponse> Users { get; set; } = new();
+
+        [JsonPropertyName("total")]
+        public int Total { get; set; }
+    }
+
     public class WebSocketMessage
     {
-        [JsonPropertyName("event")]
-        public string Event { get; set; } = string.Empty;
+        [JsonPropertyName("event_type")]
+        public string EventType { get; set; } = string.Empty;
+
+        [JsonPropertyName("timestamp")]
+        public DateTime Timestamp { get; set; }
 
         [JsonPropertyName("data")]
         public JsonElement? Data { get; set; }
+    }
+
+    public class WebSocketClientMessage
+    {
+        [JsonPropertyName("action")]
+        public string Action { get; set; } = string.Empty;
+
+        [JsonPropertyName("channel_type")]
+        public string? ChannelType { get; set; }
+
+        [JsonPropertyName("channel_id")]
+        public string? ChannelId { get; set; }
+
+        [JsonPropertyName("space_id")]
+        public int? SpaceId { get; set; }
+
+        [JsonPropertyName("payload")]
+        public MessagePayload? Payload { get; set; }
+    }
+
+    public class MessagePayload
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+    }
+
+    public class UserJoinedEventData
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+
+        [JsonPropertyName("nickname")]
+        public string Nickname { get; set; } = string.Empty;
+
+        [JsonPropertyName("avatar")]
+        public string? Avatar { get; set; }
+
+        [JsonPropertyName("level")]
+        public int Level { get; set; }
+
+        [JsonPropertyName("is_guest")]
+        public bool IsGuest { get; set; }
+    }
+
+    public class UserLeftEventData
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+    }
+
+    public class UserStatusChangedEventData
+    {
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+
+        [JsonPropertyName("old_status")]
+        public string OldStatus { get; set; } = string.Empty;
+
+        [JsonPropertyName("new_status")]
+        public string NewStatus { get; set; } = string.Empty;
+    }
+
+    public class RoomCreatedEventData
+    {
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+
+        [JsonPropertyName("max_members")]
+        public int MaxMembers { get; set; }
+
+        [JsonPropertyName("owner_id")]
+        public int OwnerId { get; set; }
+    }
+
+    public class RoomUpdatedEventData
+    {
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("changes")]
+        public JsonElement Changes { get; set; }
+    }
+
+    public class RoomDeletedEventData
+    {
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+    }
+
+    public class RoomMemberJoinedEventData
+    {
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+
+        [JsonPropertyName("nickname")]
+        public string Nickname { get; set; } = string.Empty;
+    }
+
+    public class RoomMemberLeftEventData
+    {
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+    }
+
+    public class RoomStatusChangedEventData
+    {
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("old_status")]
+        public string OldStatus { get; set; } = string.Empty;
+
+        [JsonPropertyName("new_status")]
+        public string NewStatus { get; set; } = string.Empty;
+    }
+
+    public class MessageSentEventData
+    {
+        [JsonPropertyName("message_id")]
+        public int MessageId { get; set; }
+
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("sender_session_id")]
+        public string SenderSessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("sender_user_id")]
+        public int SenderUserId { get; set; }
+
+        [JsonPropertyName("sender_nickname")]
+        public string SenderNickname { get; set; } = string.Empty;
+
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+    }
+
+    public class MessageEditedEventData
+    {
+        [JsonPropertyName("message_id")]
+        public int MessageId { get; set; }
+
+        [JsonPropertyName("new_content")]
+        public string NewContent { get; set; } = string.Empty;
+    }
+
+    public class MessageDeletedEventData
+    {
+        [JsonPropertyName("message_id")]
+        public int MessageId { get; set; }
+    }
+
+    public class AnnouncementEventData
+    {
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("priority")]
+        public string Priority { get; set; } = string.Empty;
+    }
+
+    public class NotificationEventData
+    {
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+    }
+
+    public class MatchFoundEventData
+    {
+        [JsonPropertyName("match_id")]
+        public string MatchId { get; set; } = string.Empty;
+
+        [JsonPropertyName("room_id")]
+        public int RoomId { get; set; }
+
+        [JsonPropertyName("participants")]
+        public List<MatchParticipant> Participants { get; set; } = new();
+    }
+
+    public class MatchParticipant
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+    }
+
+    public class MatchCancelledEventData
+    {
+        [JsonPropertyName("match_id")]
+        public string MatchId { get; set; } = string.Empty;
+
+        [JsonPropertyName("reason")]
+        public string Reason { get; set; } = string.Empty;
     }
 }

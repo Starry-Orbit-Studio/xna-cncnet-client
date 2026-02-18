@@ -13,13 +13,13 @@ namespace DTAClient.Online.Backend
     {
         private readonly BackendApiClient _apiClient;
         private readonly BackendWebSocketClient _wsClient;
-        private readonly Timer _httpHeartbeatTimer;
         private SessionResponse? _currentSession;
         private string? _savedSessionId;
 
         public event EventHandler<SessionEventArgs>? SessionCreated;
         public event EventHandler<SessionEventArgs>? SessionUpdated;
         public event EventHandler? SessionEnded;
+        public event EventHandler<OnlineUsersEventArgs>? OnlineUsersReceived;
 
         public SessionResponse? CurrentSession => _currentSession;
         public bool IsConnected => _wsClient.IsConnected;
@@ -28,7 +28,6 @@ namespace DTAClient.Online.Backend
         {
             _apiClient = apiClient;
             _wsClient = wsClient;
-            _httpHeartbeatTimer = new Timer(SendHttpHeartbeat, null, Timeout.Infinite, Timeout.Infinite);
 
             _wsClient.Connected += OnWebSocketConnected;
             _wsClient.Disconnected += OnWebSocketDisconnected;
@@ -94,7 +93,6 @@ namespace DTAClient.Online.Backend
 
             await _apiClient.DeleteSessionAsync();
             await _wsClient.DisconnectAsync();
-            _httpHeartbeatTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
             _currentSession = null;
             ClearSessionIdStorage();
@@ -105,17 +103,25 @@ namespace DTAClient.Online.Backend
         private async Task ConnectWebSocketAsync()
         {
             await _wsClient.ConnectAsync(_currentSession!.Id);
-            _httpHeartbeatTimer.Change(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-        }
-
-        private void SendHttpHeartbeat(object? state)
-        {
-            _ = _apiClient.SendHeartbeatAsync();
         }
 
         private void OnWebSocketConnected(object? sender, EventArgs e)
         {
             Logger.Log("Backend WebSocket connected");
+            _ = FetchOnlineUsersAsync();
+        }
+
+        private async Task FetchOnlineUsersAsync()
+        {
+            try
+            {
+                var onlineUsers = await _apiClient.GetOnlineUsersAsync();
+                OnlineUsersReceived?.Invoke(this, new OnlineUsersEventArgs(onlineUsers));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Failed to fetch online users: {ex.Message}");
+            }
         }
 
         private void OnWebSocketDisconnected(object? sender, WebSocketErrorEventArgs e)
@@ -125,18 +131,18 @@ namespace DTAClient.Online.Backend
 
         private void OnWebSocketMessageReceived(object? sender, WebSocketMessageEventArgs e)
         {
-            switch (e.Message.Event)
+            switch (e.Message.EventType)
             {
-                case "NEW_MESSAGE":
+                case "message_sent":
                     HandleNewMessage(e.Message);
                     break;
-                case "USER_JOINED":
+                case "user_joined":
                     HandleUserJoined(e.Message);
                     break;
-                case "USER_LEFT":
+                case "user_left":
                     HandleUserLeft(e.Message);
                     break;
-                case "SPACE_UPDATED":
+                case "room_updated":
                     HandleSpaceUpdated(e.Message);
                     break;
             }

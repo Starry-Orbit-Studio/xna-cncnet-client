@@ -73,6 +73,17 @@ namespace DTAClient.Online.Backend
 
             _sessionManager.SessionCreated += OnSessionCreated;
             _sessionManager.SessionEnded += OnSessionEnded;
+
+            _apiClient.DebugLog += OnDebugLog;
+            _wsClient.DebugLog += OnDebugLog;
+        }
+
+        private void OnDebugLog(object? sender, string message)
+        {
+            if (_mainChannel != null && ClientConfiguration.Instance.EnableBackendDebugLog)
+            {
+                _mainChannel.AddMessage(new ChatMessage(Color.Yellow, message));
+            }
         }
 
         public bool IsCnCNetInitialized()

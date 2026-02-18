@@ -567,6 +567,8 @@ namespace ClientCore
 
         public bool UseBackendInsteadOfIRC => networkDefinitionsIni.GetBooleanValue(SETTINGS, "UseBackendInsteadOfIRC", false);
 
+        public bool EnableBackendDebugLog => networkDefinitionsIni.GetBooleanValue(SETTINGS, "EnableBackendDebugLog", false);
+
         /// <summary>
         /// 检查外部账户功能是否启用（通过检查API基础地址是否配置）
         /// </summary>

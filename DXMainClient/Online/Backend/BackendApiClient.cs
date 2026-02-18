@@ -7,7 +7,9 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using ClientCore;
 using DTAClient.Online.Backend.Models;
+using Rampastring.Tools;
 
 namespace DTAClient.Online.Backend
 {
@@ -27,6 +29,8 @@ namespace DTAClient.Online.Backend
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
         private string? _sessionId;
+
+        public event EventHandler<string>? DebugLog;
 
         public BackendApiClient(string baseUrl, HttpClient httpClient)
         {
@@ -114,6 +118,14 @@ namespace DTAClient.Online.Backend
         public async Task<List<SpaceMemberResponse>> GetSpaceMembersAsync(int spaceId)
         {
             return await GetAsync<List<SpaceMemberResponse>>($"/v1/spaces/{spaceId}/members");
+        }
+
+        public async Task<OnlineUsersResponse> GetOnlineUsersAsync()
+        {
+            var response = await GetAsync<OnlineUsersResponse>("/v1/presence/online-users");
+            string usersJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            Logger.Log($"[Backend] Online users response:\n{usersJson}");
+            return response;
         }
 
         public async Task<ChatMessageResponse> SendMessageAsync(SendMessageRequest request)
@@ -215,15 +227,32 @@ namespace DTAClient.Online.Backend
 
         private async Task<T> SendRequestAsync<T>(HttpRequestMessage request)
         {
+            if (ClientConfiguration.Instance.EnableBackendDebugLog)
+            {
+                string logMessage = $"[Backend API] {request.Method} {request.RequestUri}";
+                DebugLog?.Invoke(this, logMessage);
+
+                if (request.Content != null)
+                {
+                    string requestBody = await request.Content.ReadAsStringAsync();
+                    DebugLog?.Invoke(this, $"[Backend API] Request: {requestBody}");
+                }
+            }
+
             var response = await _httpClient.SendAsync(request);
+
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            if (ClientConfiguration.Instance.EnableBackendDebugLog)
+            {
+                DebugLog?.Invoke(this, $"[Backend API] Response ({(int)response.StatusCode}): {responseContent}");
+            }
 
             if (!response.IsSuccessStatusCode)
             {
-                string errorContent = await response.Content.ReadAsStringAsync();
-                throw new BackendApiException(response.StatusCode, errorContent);
+                throw new BackendApiException(response.StatusCode, responseContent);
             }
 
-            string responseContent = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<T>(responseContent)!;
         }
     }
