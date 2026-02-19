@@ -45,7 +45,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             MapLoader mapLoader,
             GameCollection gameCollection,
             DiscordHandler discordHandler,
-            CnCNetUserData cncnetUserData
+            CnCNetUserData cncnetUserData,
+            PlayerIdentityService playerIdentityService
         ) : base(windowManager, discordHandler)
         {
             this.connectionManager = connectionManager;
@@ -54,6 +55,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             this.gameCollection = gameCollection;
             this.mapLoader = mapLoader;
             this.cncnetUserData = cncnetUserData;
+            this._playerIdentityService = playerIdentityService;
 
             ctcpCommandHandlers = new CommandHandlerBase[]
             {
@@ -75,6 +77,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private CnCNetManager connectionManager;
 
         private CnCNetUserData cncnetUserData;
+
+        private readonly PlayerIdentityService _playerIdentityService;
 
         private List<GameMode> gameModes;
 
@@ -268,9 +272,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 channel.SendCTCPMessage(TUNNEL_PING_CTCP_COMMAND + " " + tunnelHandler.CurrentTunnel.PingInMs, QueuedMessageType.SYSTEM_MESSAGE, 10);
 
                 if (tunnelHandler.CurrentTunnel.PingInMs < 0)
-                    AddNotice(string.Format("{0} - unknown ping to tunnel server.".L10N("Client:Main:PlayerUnknownPing"), PlayerIdentityService.Instance.GetIRCName()));
+                    AddNotice(string.Format("{0} - unknown ping to tunnel server.".L10N("Client:Main:PlayerUnknownPing"), _playerIdentityService.GetIRCName()));
                 else
-                    AddNotice(string.Format("{0} - ping to tunnel server: {1} ms".L10N("Client:Main:PlayerPing"), PlayerIdentityService.Instance.GetIRCName(), tunnelHandler.CurrentTunnel.PingInMs));
+                    AddNotice(string.Format("{0} - ping to tunnel server: {1} ms".L10N("Client:Main:PlayerPing"), _playerIdentityService.GetIRCName(), tunnelHandler.CurrentTunnel.PingInMs));
             }
 
             topBar.AddPrimarySwitchable(this);

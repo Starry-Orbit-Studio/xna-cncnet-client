@@ -55,6 +55,11 @@ namespace ClientCore.ExternalAccount
         /// </summary>
         public bool IsLoggedIn => !string.IsNullOrEmpty(_authToken) && _userInfo != null;
 
+        /// <summary>
+        /// 获取当前的访问令牌
+        /// </summary>
+        public string AccessToken => _authToken;
+
         public ExternalAccountService()
         {
             _httpClient = new HttpClient();

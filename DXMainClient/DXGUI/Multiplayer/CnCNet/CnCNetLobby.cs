@@ -43,7 +43,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         OptionsWindow optionsWindow, MapLoader mapLoader, Random random,
         ExternalAccountService externalAccountService,
         LoginWindow loginWindow,
-        Online.Backend.BackendManager? backendManager)
+        Online.Backend.BackendManager? backendManager,
+        PlayerIdentityService playerIdentityService)
             : base(windowManager)
         {
             this.connectionManager = connectionManager;
@@ -60,6 +61,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             this.externalAccountService = externalAccountService;
             this.accountLoginWindow = loginWindow;
             this._backendManager = backendManager;
+            this._playerIdentityService = playerIdentityService;
 
             ctcpCommandHandlers = new CommandHandlerBase[]
             {
@@ -78,6 +80,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private CnCNetUserData cncnetUserData;
         private readonly OptionsWindow optionsWindow;
         private readonly ExternalAccountService externalAccountService;
+        private readonly PlayerIdentityService _playerIdentityService;
 
         private PlayerListBox lbPlayerList;
         private ChatListBox lbChatMessages;
@@ -869,7 +872,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             if (hg.Locked)
                 return "The selected game is locked!".L10N("Client:Main:GameLocked");
 
-            if (hg.IsLoadedGame && !hg.Players.Contains(PlayerIdentityService.Instance.GetIRCName()))
+            if (hg.IsLoadedGame && !hg.Players.Contains(_playerIdentityService.GetIRCName()))
                 return "You do not exist in the saved game!".L10N("Client:Main:NotInSavedGame");
 
             return GetJoinGameErrorBase();

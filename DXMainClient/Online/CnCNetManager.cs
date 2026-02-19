@@ -46,11 +46,12 @@ namespace DTAClient.Online
         public event EventHandler<UserNameIndexEventArgs> UserRemoved;
         public event EventHandler MultipleUsersAdded;
 
-        public CnCNetManager(WindowManager wm, GameCollection gc, CnCNetUserData cncNetUserData, Random random)
+        public CnCNetManager(WindowManager wm, GameCollection gc, CnCNetUserData cncNetUserData, Random random, PlayerIdentityService playerIdentityService)
         {
             gameCollection = gc;
             this.cncNetUserData = cncNetUserData;
-            connection = new Connection(this, random);
+            this._playerIdentityService = playerIdentityService;
+            connection = new Connection(this, random, playerIdentityService);
 
             this.wm = wm;
 
@@ -106,6 +107,7 @@ namespace DTAClient.Online
 
         private GameCollection gameCollection;
         private readonly CnCNetUserData cncNetUserData;
+        private readonly PlayerIdentityService _playerIdentityService;
 
         private Color cDefaultChatColor;
         private IRCColor[] ircChatColors;

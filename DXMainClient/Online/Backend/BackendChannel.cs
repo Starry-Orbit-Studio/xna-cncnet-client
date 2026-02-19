@@ -17,7 +17,10 @@ namespace DTAClient.Online.Backend
     {
         private readonly BackendApiClient _apiClient;
         private readonly BackendSessionManager _sessionManager;
+        private readonly BackendWebSocketClient _wsClient;
+        private readonly PlayerIdentityService _playerIdentityService;
         private int _spaceId;
+        private string? _channel;
 
         public BackendChannel(
             string uiName,
@@ -26,23 +29,23 @@ namespace DTAClient.Online.Backend
             bool isChatChannel,
             string? password,
             BackendApiClient apiClient,
-            BackendSessionManager sessionManager)
-            : base(uiName, channelName, persistent, isChatChannel, password ?? string.Empty, new NullConnection())
+            BackendSessionManager sessionManager,
+            BackendWebSocketClient wsClient,
+            PlayerIdentityService playerIdentityService)
+            : base(uiName, channelName, persistent, isChatChannel, password ?? string.Empty, new NullConnection(playerIdentityService))
         {
             _apiClient = apiClient;
             _sessionManager = sessionManager;
+            _wsClient = wsClient;
+            _playerIdentityService = playerIdentityService;
         }
 
         public void SendChatMessageBackend(string message, IRCColor color)
         {
             AddMessage(new ChatMessage(ProgramConstants.PLAYERNAME, color.XnaColor, DateTime.Now, message));
 
-            _ = _apiClient.SendMessageAsync(new SendMessageRequest
-            {
-                SpaceId = _spaceId,
-                Type = IsChatChannel ? "room" : "lobby",
-                Content = message
-            });
+            string channel = _channel ?? _sessionManager.LobbyChannel ?? "room:1";
+            _ = _wsClient.SendMessageAsync(channel, message, IsChatChannel ? "room" : "lobby");
         }
 
         public void JoinBackend()
@@ -59,6 +62,12 @@ namespace DTAClient.Online.Backend
         public void UpdateFromSpace(SpaceResponse space)
         {
             _spaceId = space.Id;
+            _channel = $"room:{space.Id}";
+        }
+
+        public void SetChannel(string channel)
+        {
+            _channel = channel;
         }
 
         public async Task LoadMembersAsync()
@@ -94,7 +103,7 @@ namespace DTAClient.Online.Backend
 
         private class NullConnection : Connection
         {
-            public NullConnection() : base(new NullConnectionManager(), new Random())
+            public NullConnection(PlayerIdentityService playerIdentityService) : base(new NullConnectionManager(), new Random(), playerIdentityService)
             {
             }
 

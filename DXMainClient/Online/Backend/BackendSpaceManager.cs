@@ -12,16 +12,20 @@ namespace DTAClient.Online.Backend
     {
         private readonly BackendApiClient _apiClient;
         private readonly BackendSessionManager _sessionManager;
+        private readonly BackendWebSocketClient _wsClient;
+        private readonly PlayerIdentityService _playerIdentityService;
         private readonly Dictionary<int, BackendChannel> _channels = new();
 
         public event EventHandler<SpaceEventArgs>? SpaceCreated;
         public event EventHandler<SpaceEventArgs>? SpaceUpdated;
         public event EventHandler<SpaceEventArgs>? SpaceDeleted;
 
-        public BackendSpaceManager(BackendApiClient apiClient, BackendSessionManager sessionManager)
+        public BackendSpaceManager(BackendApiClient apiClient, BackendSessionManager sessionManager, BackendWebSocketClient wsClient, PlayerIdentityService playerIdentityService)
         {
             _apiClient = apiClient;
             _sessionManager = sessionManager;
+            _wsClient = wsClient;
+            _playerIdentityService = playerIdentityService;
         }
 
         public async Task<BackendChannel> CreateLobbyAsync(string name, int maxMembers = 100, bool isPrivate = false)
@@ -138,7 +142,9 @@ namespace DTAClient.Online.Backend
                 space.Type == "lobby" || space.Type == "room",
                 null,
                 _apiClient,
-                _sessionManager
+                _sessionManager,
+                _wsClient,
+                _playerIdentityService
             );
         }
     }

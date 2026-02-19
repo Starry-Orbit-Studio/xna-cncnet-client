@@ -10,39 +10,15 @@ namespace DTAClient.Online
     /// </summary>
     public class PlayerIdentityService
     {
-        private static PlayerIdentityService _instance;
-        private static readonly object _lock = new object();
-
-        private ExternalAccountService _externalAccountService;
+        private readonly ClientCore.ExternalAccount.ExternalAccountService _externalAccountService;
 
         public event EventHandler IdentityChanged;
 
-        private PlayerIdentityService(ExternalAccountService externalAccountService)
+        public PlayerIdentityService(ClientCore.ExternalAccount.ExternalAccountService externalAccountService)
         {
             _externalAccountService = externalAccountService;
             _externalAccountService.LoginStateChanged += OnLoginStateChanged;
             _externalAccountService.UserInfoUpdated += OnUserInfoUpdated;
-        }
-
-        public static void Initialize(ExternalAccountService externalAccountService)
-        {
-            lock (_lock)
-            {
-                if (_instance == null)
-                {
-                    _instance = new PlayerIdentityService(externalAccountService);
-                }
-            }
-        }
-
-        public static PlayerIdentityService Instance
-        {
-            get
-            {
-                if (_instance == null)
-                    throw new InvalidOperationException("PlayerIdentityService not initialized. Call Initialize first.");
-                return _instance;
-            }
         }
 
         private void OnLoginStateChanged(object sender, EventArgs e)
@@ -129,6 +105,14 @@ namespace DTAClient.Online
         public string GetIRCName()
         {
             return ProgramConstants.PLAYERNAME;
+        }
+
+        /// <summary>
+        /// 获取当前访问令牌
+        /// </summary>
+        public string GetAccessToken()
+        {
+            return _externalAccountService.AccessToken;
         }
     }
 }

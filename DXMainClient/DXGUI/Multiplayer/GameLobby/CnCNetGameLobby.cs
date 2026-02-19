@@ -53,11 +53,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             DiscordHandler discordHandler,
             PrivateMessagingWindow pmWindow,
             Random random,
-            Online.Backend.BackendManager? backendManager = null
+            Online.Backend.BackendManager? backendManager = null,
+            PlayerIdentityService? playerIdentityService = null
         ) : base(windowManager, "MultiplayerGameLobby", topBar, mapLoader, discordHandler, pmWindow, random)
         {
             this.connectionManager = connectionManager;
             this._backendManager = backendManager;
+            this._playerIdentityService = playerIdentityService ?? throw new ArgumentNullException(nameof(playerIdentityService));
 
             activeManager = ClientConfiguration.Instance.UseBackendInsteadOfIRC && backendManager != null
                 ? backendManager
@@ -138,6 +140,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private GameCollection gameCollection;
         private CnCNetUserData cncnetUserData;
+        private readonly PlayerIdentityService _playerIdentityService;
         private readonly PrivateMessagingWindow pmWindow;
         private GlobalContextMenu globalContextMenu;
 
@@ -364,7 +367,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             channel.SendCTCPMessage("TNLPNG " + tunnelHandler.CurrentTunnel.PingInMs, QueuedMessageType.SYSTEM_MESSAGE, 10);
 
-            PlayerInfo pInfo = Players.Find(p => p.Name.Equals(PlayerIdentityService.Instance.GetIRCName()));
+            PlayerInfo pInfo = Players.Find(p => p.Name.Equals(_playerIdentityService.GetIRCName()));
             if (pInfo != null)
             {
                 pInfo.Ping = tunnelHandler.CurrentTunnel.PingInMs;
@@ -710,7 +713,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private void Channel_UserKicked(object sender, UserNameEventArgs e)
         {
-            if (e.UserName == PlayerIdentityService.Instance.GetIRCName())
+            if (e.UserName == _playerIdentityService.GetIRCName())
             {
                 activeManager.MainChannel.AddMessage(new ChatMessage(
                     ERROR_MESSAGE_COLOR, "You were kicked from the game!".L10N("Client:Main:YouWereKicked")));
@@ -761,12 +764,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (!IsHost)
             {
                 CopyPlayerDataToUI();
-                if (e.User.IRCUser.Name == PlayerIdentityService.Instance.GetIRCName())
+                if (e.User.IRCUser.Name == _playerIdentityService.GetIRCName())
                     SendMyLevelToHost();
                 return;
             }
 
-            if (e.User.IRCUser.Name != PlayerIdentityService.Instance.GetIRCName())
+            if (e.User.IRCUser.Name != _playerIdentityService.GetIRCName())
             {
                 // Changing the map applies forced settings (co-op sides etc.) to the
                 // new player, and it also sends an options broadcast message
@@ -937,7 +940,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 return;
             }
 
-            PlayerInfo pInfo = Players.Find(p => p.Name == PlayerIdentityService.Instance.GetIRCName());
+            PlayerInfo pInfo = Players.Find(p => p.Name == _playerIdentityService.GetIRCName());
             if (pInfo == null)
                 return;
 

@@ -40,6 +40,8 @@ namespace DTAClient.Online.Backend
         public event EventHandler<MatchFoundEventArgs>? MatchFound;
         public event EventHandler<MatchCancelledEventArgs>? MatchCancelled;
         public event EventHandler<string>? DebugLog;
+        public event EventHandler<ReadyEventArgs>? Ready;
+        public event EventHandler<ErrorEventArgs>? Error;
 
         public bool IsConnected => _webSocket?.State == WebSocketState.Open;
 
@@ -49,12 +51,10 @@ namespace DTAClient.Online.Backend
             _heartbeatTimer = new Timer(SendHeartbeat, null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        public async Task ConnectAsync(string sessionId)
+        public async Task ConnectAsync(string ticket)
         {
-            _sessionId = sessionId;
-
             string wsUrl = _baseUrl.Replace("http://", "ws://").Replace("https://", "wss://");
-            wsUrl += $"/v1/ws?session_id={sessionId}";
+            wsUrl += $"/api/v1/ws?ticket={ticket}";
 
             if (ClientConfiguration.Instance.EnableBackendDebugLog)
                 Logger.Log($"[Backend WebSocket] Connecting to {wsUrl}");
@@ -135,6 +135,24 @@ namespace DTAClient.Online.Backend
         {
             switch (message.EventType)
             {
+                case "ready":
+                    if (message.Data.HasValue)
+                    {
+                        var data = JsonSerializer.Deserialize<ReadyEventData>(message.Data.Value);
+                        if (data != null)
+                            Ready?.Invoke(this, new ReadyEventArgs(data));
+                    }
+                    break;
+
+                case "error":
+                    if (message.Data.HasValue)
+                    {
+                        var data = JsonSerializer.Deserialize<ErrorEventData>(message.Data.Value);
+                        if (data != null)
+                            Error?.Invoke(this, new ErrorEventArgs(data));
+                    }
+                    break;
+
                 case "user_joined":
                     if (message.Data.HasValue)
                     {
@@ -309,13 +327,12 @@ namespace DTAClient.Online.Backend
             });
         }
 
-        public async Task SendMessageAsync(int spaceId, string content, string type = "room")
+        public async Task SendMessageAsync(string channel, string content, string type = "room")
         {
             await SendAsync(new WebSocketClientMessage
             {
                 Action = "SEND_MESSAGE",
-                SpaceId = spaceId,
-                Payload = new MessagePayload { Type = type, Content = content }
+                Payload = new MessagePayload { Type = type, Content = content, Channel = channel }
             });
         }
 

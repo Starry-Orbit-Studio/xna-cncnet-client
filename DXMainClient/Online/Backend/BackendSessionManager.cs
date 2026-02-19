@@ -13,67 +13,67 @@ namespace DTAClient.Online.Backend
     {
         private readonly BackendApiClient _apiClient;
         private readonly BackendWebSocketClient _wsClient;
+        private readonly PlayerIdentityService _playerIdentityService;
         private SessionResponse? _currentSession;
-        private string? _savedSessionId;
+        private string? _lobbyChannel;
 
         public event EventHandler<SessionEventArgs>? SessionCreated;
         public event EventHandler<SessionEventArgs>? SessionUpdated;
         public event EventHandler? SessionEnded;
         public event EventHandler<OnlineUsersEventArgs>? OnlineUsersReceived;
+        public event EventHandler<ReadyEventArgs>? Ready;
+        public event EventHandler<ErrorEventArgs>? Error;
 
         public SessionResponse? CurrentSession => _currentSession;
         public bool IsConnected => _wsClient.IsConnected;
-
-        public BackendSessionManager(BackendApiClient apiClient, BackendWebSocketClient wsClient)
+        public string? LobbyChannel => _lobbyChannel;
+        
+        public BackendSessionManager(BackendApiClient apiClient, BackendWebSocketClient wsClient, PlayerIdentityService playerIdentityService)
         {
             _apiClient = apiClient;
             _wsClient = wsClient;
+            _playerIdentityService = playerIdentityService;
 
             _wsClient.Connected += OnWebSocketConnected;
             _wsClient.Disconnected += OnWebSocketDisconnected;
             _wsClient.MessageReceived += OnWebSocketMessageReceived;
+            _wsClient.Ready += OnWebSocketReady;
+            _wsClient.Error += OnWebSocketError;
         }
 
         public async Task InitializeAsync()
         {
-            _savedSessionId = LoadSessionIdFromStorage();
+        }
 
-            if (!string.IsNullOrEmpty(_savedSessionId))
+        public async Task ConnectToLobbyAsync(string? guestName = null)
+        {
+            try
             {
-                try
-                {
-                    _currentSession = await _apiClient.GetSessionInfoAsync(_savedSessionId);
-                    if (_currentSession != null && _currentSession.IsActive)
-                    {
-                        await ConnectWebSocketAsync();
-                        return;
-                    }
-                }
-                catch
-                {
-                }
-            }
+                ConnectTicketResponse ticketResponse;
 
-            await CreateGuestSessionAsync();
+                if (_playerIdentityService.IsLoggedIn())
+                {
+                    _apiClient.SetAccessToken(_playerIdentityService.GetAccessToken());
+                    ticketResponse = await _apiClient.ConnectAsUserAsync();
+                }
+                else
+                {
+                    ticketResponse = await _apiClient.ConnectAsGuestAsync(guestName);
+                }
+
+                _currentSession = new SessionResponse { Id = ticketResponse.SessionId };
+                await ConnectWebSocketAsync(ticketResponse.WsTicket);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Failed to connect to lobby: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task CreateGuestSessionAsync(string? guestName = null)
         {
-            _currentSession = await _apiClient.CreateGuestSessionAsync(guestName);
-            SaveSessionIdToStorage(_currentSession.Id);
-
-            SessionCreated?.Invoke(this, new SessionEventArgs(_currentSession));
-
-            await ConnectWebSocketAsync();
-        }
-
-        public async Task BindUserAsync(int userId)
-        {
-            if (_currentSession == null)
-                throw new InvalidOperationException("No active session");
-
-            _currentSession = await _apiClient.BindUserToSessionAsync(userId);
-            SessionUpdated?.Invoke(this, new SessionEventArgs(_currentSession));
+            await ConnectToLobbyAsync(guestName);
         }
 
         public async Task JoinSpaceAsync(int spaceId)
@@ -95,14 +95,13 @@ namespace DTAClient.Online.Backend
             await _wsClient.DisconnectAsync();
 
             _currentSession = null;
-            ClearSessionIdStorage();
 
             SessionEnded?.Invoke(this, EventArgs.Empty);
         }
 
-        private async Task ConnectWebSocketAsync()
+        private async Task ConnectWebSocketAsync(string ticket)
         {
-            await _wsClient.ConnectAsync(_currentSession!.Id);
+            await _wsClient.ConnectAsync(ticket);
         }
 
         private void OnWebSocketConnected(object? sender, EventArgs e)
@@ -127,6 +126,19 @@ namespace DTAClient.Online.Backend
         private void OnWebSocketDisconnected(object? sender, WebSocketErrorEventArgs e)
         {
             Logger.Log($"Backend WebSocket disconnected: {e.Message}");
+        }
+
+        private void OnWebSocketReady(object? sender, ReadyEventArgs e)
+        {
+            Logger.Log($"Backend WebSocket ready: {e.Data.UserInfo.Nickname}");
+            _lobbyChannel = e.Data.LobbyInfo.Channel;
+            Ready?.Invoke(this, e);
+        }
+
+        private void OnWebSocketError(object? sender, ErrorEventArgs e)
+        {
+            Logger.Log($"Backend WebSocket error: {e.Data.Code} - {e.Data.Message}");
+            Error?.Invoke(this, e);
         }
 
         private void OnWebSocketMessageReceived(object? sender, WebSocketMessageEventArgs e)
@@ -162,23 +174,6 @@ namespace DTAClient.Online.Backend
 
         private void HandleSpaceUpdated(WebSocketMessage message)
         {
-        }
-
-        private string? LoadSessionIdFromStorage()
-        {
-            return UserINISettings.Instance.BackendSessionId.Value;
-        }
-
-        private void SaveSessionIdToStorage(string sessionId)
-        {
-            UserINISettings.Instance.BackendSessionId.Value = sessionId;
-            UserINISettings.Instance.SaveSettings();
-        }
-
-        private void ClearSessionIdStorage()
-        {
-            UserINISettings.Instance.BackendSessionId.Value = string.Empty;
-            UserINISettings.Instance.SaveSettings();
         }
     }
 }

@@ -215,4 +215,24 @@ namespace DTAClient.Online.Backend.EventArguments
             Data = data;
         }
     }
+
+    public class ReadyEventArgs : EventArgs
+    {
+        public ReadyEventData Data { get; }
+
+        public ReadyEventArgs(ReadyEventData data)
+        {
+            Data = data;
+        }
+    }
+
+    public class ErrorEventArgs : EventArgs
+    {
+        public ErrorEventData Data { get; }
+
+        public ErrorEventArgs(ErrorEventData data)
+        {
+            Data = data;
+        }
+    }
 }

@@ -12,6 +12,21 @@ namespace DTAClient.Online.Backend.Models
         public string? GuestName { get; set; }
     }
 
+    public class ConnectTicketRequest
+    {
+        [JsonPropertyName("guest_name")]
+        public string? GuestName { get; set; }
+    }
+
+    public class ConnectTicketResponse
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("ws_ticket")]
+        public string WsTicket { get; set; } = string.Empty;
+    }
+
     public class BindUserRequest
     {
         [JsonPropertyName("user_id")]
@@ -316,6 +331,9 @@ namespace DTAClient.Online.Backend.Models
 
         [JsonPropertyName("content")]
         public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("channel")]
+        public string? Channel { get; set; }
     }
 
     public class UserJoinedEventData
@@ -526,5 +544,62 @@ namespace DTAClient.Online.Backend.Models
 
         [JsonPropertyName("reason")]
         public string Reason { get; set; } = string.Empty;
+    }
+
+    public class ReadyEventData
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_info")]
+        public ReadyUserInfo UserInfo { get; set; } = new();
+
+        [JsonPropertyName("lobby_info")]
+        public ReadyLobbyInfo LobbyInfo { get; set; } = new();
+
+        [JsonPropertyName("subscriptions")]
+        public List<string> Subscriptions { get; set; } = new();
+    }
+
+    public class ReadyUserInfo
+    {
+        [JsonPropertyName("session_id")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("user_id")]
+        public int UserId { get; set; }
+
+        [JsonPropertyName("is_guest")]
+        public bool IsGuest { get; set; }
+
+        [JsonPropertyName("nickname")]
+        public string Nickname { get; set; } = string.Empty;
+
+        [JsonPropertyName("avatar")]
+        public string? Avatar { get; set; }
+
+        [JsonPropertyName("level")]
+        public int Level { get; set; }
+    }
+
+    public class ReadyLobbyInfo
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("channel")]
+        public string Channel { get; set; } = string.Empty;
+    }
+
+    public class ErrorEventData
+    {
+        [JsonPropertyName("code")]
+        public int Code { get; set; }
+
+        [JsonPropertyName("message")]
+        public string Message { get; set; } = string.Empty;
     }
 }

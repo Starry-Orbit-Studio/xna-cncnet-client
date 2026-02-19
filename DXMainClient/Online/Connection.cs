@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DTAClient.Online;
 
 namespace DTAClient.Online
 {
@@ -26,15 +27,18 @@ namespace DTAClient.Online
         private const int MAXIMUM_LATENCY = 400;
         private const int BYTE_ARRAY_MSG_LEN = 1024;
 
-        public Connection(IConnectionManager connectionManager, Random random)
+        public Connection(IConnectionManager connectionManager, Random random, PlayerIdentityService playerIdentityService)
         {
             this.connectionManager = connectionManager;
             this.Rng = random;
+            this._playerIdentityService = playerIdentityService;
         }
 
         IConnectionManager connectionManager;
 
         public Random Rng;
+
+        private readonly PlayerIdentityService _playerIdentityService;
 
         private static IList<Server> _servers = null;
         /// <summary>
@@ -945,13 +949,13 @@ namespace DTAClient.Online
             SendMessage(string.Format("USER {0} 0 * :{1}", defaultGame + "." +
                 systemId, realname));
 
-            string displayName = PlayerIdentityService.Instance.GetPlainName();
+            string displayName = _playerIdentityService.GetPlainName();
             SendMessage("NICK " + displayName);
         }
 
         public void ChangeNickname()
         {
-            string displayName = PlayerIdentityService.Instance.GetPlainName();
+            string displayName = _playerIdentityService.GetPlainName();
             SendMessage("NICK " + displayName);
         }
 

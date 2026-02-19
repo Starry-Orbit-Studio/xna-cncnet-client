@@ -275,7 +275,13 @@ namespace DTAClient.DXGUI
                                 var baseUrl = ClientConfiguration.Instance.BackendApiBaseUrl;
                                 return new Online.Backend.BackendWebSocketClient(baseUrl);
                             })
-                            .AddSingleton<Online.Backend.BackendSessionManager>()
+                            .AddSingleton<Online.Backend.BackendSessionManager>(provider =>
+                            {
+                                var apiClient = provider.GetRequiredService<Online.Backend.BackendApiClient>();
+                                var wsClient = provider.GetRequiredService<Online.Backend.BackendWebSocketClient>();
+                                var playerIdentityService = provider.GetRequiredService<PlayerIdentityService>();
+                                return new Online.Backend.BackendSessionManager(apiClient, wsClient, playerIdentityService);
+                            })
                             .AddSingleton<Online.Backend.BackendSpaceManager>()
                             .AddSingleton<Online.Backend.BackendManager>();
                         // singleton xna controls - same instance on each request

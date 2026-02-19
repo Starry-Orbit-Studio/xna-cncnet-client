@@ -40,18 +40,19 @@ namespace DTAClient.Online.Backend
 
         public string? SessionId => _sessionId;
 
-        public async Task<SessionResponse> CreateGuestSessionAsync(string? guestName = null)
+        public async Task<ConnectTicketResponse> ConnectAsUserAsync()
         {
-            var request = new CreateGuestSessionRequest { GuestName = guestName };
-            var response = await PostAsync<SessionResponse>("/v1/sessions/guest", request);
-            _sessionId = response.Id;
+            var response = await PostAsync<ConnectTicketResponse>("/api/v1/sessions/connect", null);
+            _sessionId = response.SessionId;
             return response;
         }
 
-        public async Task<SessionResponse> BindUserToSessionAsync(int userId)
+        public async Task<ConnectTicketResponse> ConnectAsGuestAsync(string? guestName = null)
         {
-            var request = new BindUserRequest { UserId = userId };
-            return await PostAsync<SessionResponse>($"/v1/sessions/{_sessionId}/bind", request);
+            var request = new ConnectTicketRequest { GuestName = guestName };
+            var response = await PostAsync<ConnectTicketResponse>("/api/v1/sessions/guest/connect", request);
+            _sessionId = response.SessionId;
+            return response;
         }
 
         public async Task<SessionResponse> GetSessionInfoAsync(string? sessionId = null)
@@ -59,35 +60,36 @@ namespace DTAClient.Online.Backend
             string id = sessionId ?? _sessionId;
             if (string.IsNullOrEmpty(id))
                 throw new InvalidOperationException("Session ID is not set");
-            return await GetAsync<SessionResponse>($"/v1/sessions/{id}");
+            return await GetAsync<SessionResponse>($"/api/v1/sessions/{id}");
         }
 
-        public async Task SendHeartbeatAsync()
+        public void SetAccessToken(string accessToken)
         {
-            if (string.IsNullOrEmpty(_sessionId))
-                throw new InvalidOperationException("Session ID is not set");
-            await PostAsync<object>($"/v1/sessions/{_sessionId}/heartbeat", null);
+            _httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         }
 
         public async Task DeleteSessionAsync()
         {
-            await DeleteAsync($"/v1/sessions/{_sessionId}");
+            if (string.IsNullOrEmpty(_sessionId))
+                throw new InvalidOperationException("Session ID is not set");
+            await DeleteAsync($"/api/v1/sessions/{_sessionId}");
             _sessionId = null;
         }
 
         public async Task<SpaceResponse> CreateSpaceAsync(CreateSpaceRequest request)
         {
-            return await PostAsync<SpaceResponse>("/v1/spaces", request);
+            return await PostAsync<SpaceResponse>("/api/v1/spaces", request);
         }
 
         public async Task<SpaceResponse> GetSpaceAsync(int spaceId)
         {
-            return await GetAsync<SpaceResponse>($"/v1/spaces/{spaceId}");
+            return await GetAsync<SpaceResponse>($"/api/v1/spaces/{spaceId}");
         }
 
         public async Task<List<SpaceResponse>> GetSpacesAsync(string? spaceType = null)
         {
-            string url = "/v1/spaces";
+            string url = "/api/v1/spaces";
             if (!string.IsNullOrEmpty(spaceType))
                 url += $"?space_type={spaceType}";
             return await GetAsync<List<SpaceResponse>>(url);
@@ -95,34 +97,34 @@ namespace DTAClient.Online.Backend
 
         public async Task<SpaceResponse> UpdateSpaceAsync(int spaceId, UpdateSpaceRequest request)
         {
-            return await PatchAsync<SpaceResponse>($"/v1/spaces/{spaceId}", request);
+            return await PatchAsync<SpaceResponse>($"/api/v1/spaces/{spaceId}", request);
         }
 
         public async Task DeleteSpaceAsync(int spaceId)
         {
-            await DeleteAsync($"/v1/spaces/{spaceId}");
+            await DeleteAsync($"/api/v1/spaces/{spaceId}");
         }
 
         public async Task JoinSpaceAsync(int spaceId)
         {
             var request = new JoinSpaceRequest { SpaceId = spaceId };
-            await PostAsync<object>("/v1/spaces/join", request);
+            await PostAsync<object>("/api/v1/spaces/join", request);
         }
 
         public async Task LeaveSpaceAsync(int spaceId)
         {
             var request = new LeaveSpaceRequest { SpaceId = spaceId };
-            await PostAsync<object>("/v1/spaces/leave", request);
+            await PostAsync<object>("/api/v1/spaces/leave", request);
         }
 
         public async Task<List<SpaceMemberResponse>> GetSpaceMembersAsync(int spaceId)
         {
-            return await GetAsync<List<SpaceMemberResponse>>($"/v1/spaces/{spaceId}/members");
+            return await GetAsync<List<SpaceMemberResponse>>($"/api/v1/spaces/{spaceId}/members");
         }
 
         public async Task<OnlineUsersResponse> GetOnlineUsersAsync()
         {
-            var response = await GetAsync<OnlineUsersResponse>("/v1/presence/online-users");
+            var response = await GetAsync<OnlineUsersResponse>("/api/v1/presence/online-users");
             string usersJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             Logger.Log($"[Backend] Online users response:\n{usersJson}");
             return response;
@@ -130,12 +132,12 @@ namespace DTAClient.Online.Backend
 
         public async Task<ChatMessageResponse> SendMessageAsync(SendMessageRequest request)
         {
-            return await PostAsync<ChatMessageResponse>("/v1/messages", request);
+            return await PostAsync<ChatMessageResponse>("/api/v1/messages", request);
         }
 
         public async Task<List<ChatMessageResponse>> GetMessagesAsync(int? spaceId = null, int limit = 100, int offset = 0)
         {
-            string url = "/v1/messages";
+            string url = "/api/v1/messages";
             var queryParams = new List<string>();
             if (spaceId.HasValue) queryParams.Add($"space_id={spaceId.Value}");
             queryParams.Add($"limit={limit}");
@@ -147,49 +149,49 @@ namespace DTAClient.Online.Backend
         public async Task<FriendshipResponse> SendFriendRequestAsync(int friendId)
         {
             var request = new SendFriendRequestRequest { FriendId = friendId };
-            return await PostAsync<FriendshipResponse>("/v1/social/friends/request", request);
+            return await PostAsync<FriendshipResponse>("/api/v1/social/friends/request", request);
         }
 
         public async Task<FriendshipResponse> AcceptFriendRequestAsync(int friendId)
         {
-            return await PostAsync<FriendshipResponse>($"/v1/social/friends/{friendId}/accept", null);
+            return await PostAsync<FriendshipResponse>($"/api/v1/social/friends/{friendId}/accept", null);
         }
 
         public async Task<List<FriendshipResponse>> GetFriendsAsync()
         {
-            return await GetAsync<List<FriendshipResponse>>("/v1/social/friends");
+            return await GetAsync<List<FriendshipResponse>>("/api/v1/social/friends");
         }
 
         public async Task<List<FriendshipResponse>> GetFriendRequestsAsync()
         {
-            return await GetAsync<List<FriendshipResponse>>("/v1/social/friends/requests");
+            return await GetAsync<List<FriendshipResponse>>("/api/v1/social/friends/requests");
         }
 
         public async Task<FriendshipResponse> BlockUserAsync(int userId)
         {
-            return await PostAsync<FriendshipResponse>($"/v1/social/friends/{userId}/block", null);
+            return await PostAsync<FriendshipResponse>($"/api/v1/social/friends/{userId}/block", null);
         }
 
         public async Task DeleteFriendAsync(int friendId)
         {
-            await DeleteAsync($"/v1/social/friends/{friendId}");
+            await DeleteAsync($"/api/v1/social/friends/{friendId}");
         }
 
         public async Task<MuteResponse> MuteUserAsync(MuteUserRequest request)
         {
-            return await PostAsync<MuteResponse>("/v1/moderation/mute", request);
+            return await PostAsync<MuteResponse>("/api/v1/moderation/mute", request);
         }
 
         public async Task<MuteCheckResponse> CheckMuteAsync(int userId, int? spaceId = null)
         {
-            string url = $"/v1/moderation/mute/{userId}/check";
+            string url = $"/api/v1/moderation/mute/{userId}/check";
             if (spaceId.HasValue) url += $"?space_id={spaceId.Value}";
             return await GetAsync<MuteCheckResponse>(url);
         }
 
         public async Task UnmuteUserAsync(int userId, int? spaceId = null)
         {
-            string url = $"/v1/moderation/mute/{userId}";
+            string url = $"/api/v1/moderation/mute/{userId}";
             if (spaceId.HasValue) url += $"?space_id={spaceId.Value}";
             await DeleteAsync(url);
         }

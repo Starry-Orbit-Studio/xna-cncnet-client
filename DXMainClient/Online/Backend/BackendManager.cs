@@ -25,6 +25,7 @@ namespace DTAClient.Online.Backend
         private readonly WindowManager _windowManager;
         private readonly GameCollection _gameCollection;
         private readonly CnCNetUserData _cncNetUserData;
+        private readonly PlayerIdentityService _playerIdentityService;
 
         private Channel? _mainChannel;
         private readonly List<Channel> _channels = new();
@@ -70,7 +71,8 @@ namespace DTAClient.Online.Backend
             BackendSessionManager sessionManager,
             BackendSpaceManager spaceManager,
             BackendApiClient apiClient,
-            BackendWebSocketClient wsClient)
+            BackendWebSocketClient wsClient,
+            PlayerIdentityService playerIdentityService)
         {
             _windowManager = windowManager;
             _gameCollection = gameCollection;
@@ -79,6 +81,7 @@ namespace DTAClient.Online.Backend
             _spaceManager = spaceManager;
             _apiClient = apiClient;
             _wsClient = wsClient;
+            _playerIdentityService = playerIdentityService;
 
             _sessionManager.SessionCreated += OnSessionCreated;
             _sessionManager.SessionEnded += OnSessionEnded;
@@ -108,10 +111,12 @@ namespace DTAClient.Online.Backend
             try
             {
                 await _sessionManager.InitializeAsync();
+                await _sessionManager.ConnectToLobbyAsync();
                 Connected?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)
             {
+                Logger.Log($"[BackendManager] Connect failed: {ex.Message}");
                 ConnectAttemptFailed?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -136,7 +141,9 @@ namespace DTAClient.Online.Backend
                 isChatChannel,
                 password,
                 _apiClient,
-                _sessionManager
+                _sessionManager,
+                _wsClient,
+                _playerIdentityService
             );
         }
 
