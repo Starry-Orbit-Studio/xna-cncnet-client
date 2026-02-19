@@ -18,13 +18,8 @@ namespace ClientCore.ExternalAccount
     /// </summary>
     public class ExternalAccountService
     {
-        private const string TOKEN_SECTION = "ExternalAccount";
-        private const string TOKEN_KEY = "AuthToken";
-        private const string REFRESH_TOKEN_KEY = "RefreshToken";
-        private const string USER_INFO_KEY = "UserInfo";
-
         private readonly HttpClient _httpClient;
-        private readonly Rampastring.Tools.IniFile _settingsIni;
+        private readonly SecureTokenStorage _tokenStorage;
 
         private string _authToken;
         private string _refreshToken;
@@ -65,10 +60,7 @@ namespace ClientCore.ExternalAccount
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(GetUserAgent());
             
-            // 从UserINISettings的INI文件中加载令牌
-            string settingsPath = Rampastring.Tools.SafePath.CombineFilePath(ProgramConstants.GamePath, 
-                ClientConfiguration.Instance.SettingsIniName);
-            _settingsIni = new Rampastring.Tools.IniFile(settingsPath);
+            _tokenStorage = new SecureTokenStorage(ProgramConstants.GamePath);
             
             LoadTokens();
             
@@ -404,20 +396,13 @@ namespace ClientCore.ExternalAccount
         /// </summary>
         private void LoadTokens()
         {
-            _authToken = _settingsIni.GetStringValue(TOKEN_SECTION, TOKEN_KEY, string.Empty);
-            _refreshToken = _settingsIni.GetStringValue(TOKEN_SECTION, REFRESH_TOKEN_KEY, string.Empty);
-            
-            string userInfoJson = _settingsIni.GetStringValue(TOKEN_SECTION, USER_INFO_KEY, string.Empty);
-            if (!string.IsNullOrEmpty(userInfoJson))
+            var tokenData = _tokenStorage.LoadTokens();
+            if (tokenData != null)
             {
-                try
-                {
-                    _userInfo = JsonSerializer.Deserialize<UserInfo>(userInfoJson);
-                }
-                catch (JsonException)
-                {
-                    _userInfo = null;
-                }
+                _authToken = tokenData.AccessToken;
+                _refreshToken = tokenData.RefreshToken;
+                _userInfo = tokenData.UserInfo;
+                Logger.Log($"ExternalAccountService: 从安全存储加载令牌，用户: {_userInfo?.Nickname ?? "未知"}");
             }
         }
 
@@ -426,20 +411,10 @@ namespace ClientCore.ExternalAccount
         /// </summary>
         private void SaveTokens()
         {
-            _settingsIni.SetStringValue(TOKEN_SECTION, TOKEN_KEY, _authToken ?? string.Empty);
-            _settingsIni.SetStringValue(TOKEN_SECTION, REFRESH_TOKEN_KEY, _refreshToken ?? string.Empty);
-            
             if (_userInfo != null)
             {
-                string userInfoJson = JsonSerializer.Serialize(_userInfo);
-                _settingsIni.SetStringValue(TOKEN_SECTION, USER_INFO_KEY, userInfoJson);
+                _tokenStorage.SaveTokens(_authToken ?? string.Empty, _refreshToken ?? string.Empty, _userInfo);
             }
-            else
-            {
-                _settingsIni.SetStringValue(TOKEN_SECTION, USER_INFO_KEY, string.Empty);
-            }
-            
-            _settingsIni.WriteIniFile();
         }
 
         /// <summary>
@@ -447,10 +422,7 @@ namespace ClientCore.ExternalAccount
         /// </summary>
         private void ClearTokens()
         {
-            _settingsIni.SetStringValue(TOKEN_SECTION, TOKEN_KEY, string.Empty);
-            _settingsIni.SetStringValue(TOKEN_SECTION, REFRESH_TOKEN_KEY, string.Empty);
-            _settingsIni.SetStringValue(TOKEN_SECTION, USER_INFO_KEY, string.Empty);
-            _settingsIni.WriteIniFile();
+            _tokenStorage.ClearTokens();
         }
 
         /// <summary>

@@ -51,7 +51,7 @@ namespace DTAClient.Online.Backend.Models
         public DateTime ConnectedAt { get; set; }
 
         [JsonPropertyName("last_seen")]
-        public DateTime LastSeen { get; set; }
+        public DateTime? LastSeen { get; set; }
 
         [JsonPropertyName("is_active")]
         public bool IsActive { get; set; }
@@ -276,7 +276,7 @@ namespace DTAClient.Online.Backend.Models
         public string Status { get; set; } = string.Empty;
 
         [JsonPropertyName("last_seen")]
-        public DateTime LastSeen { get; set; }
+        public DateTime? LastSeen { get; set; }
     }
 
     public class OnlineUsersResponse

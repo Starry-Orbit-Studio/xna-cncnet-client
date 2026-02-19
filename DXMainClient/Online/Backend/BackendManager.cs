@@ -63,6 +63,8 @@ namespace DTAClient.Online.Backend
 
         public bool IsConnected => _sessionManager.IsConnected;
         public bool IsAttemptingConnection => false;
+        
+        public BackendSpaceManager SpaceManager => _spaceManager;
 
         public BackendManager(
             WindowManager windowManager,
@@ -171,6 +173,7 @@ namespace DTAClient.Online.Backend
         public void SetMainChannel(Channel channel)
         {
             _mainChannel = channel;
+            Logger.Log($"[BackendManager] Main channel set to {channel.UIName}");
             
             if (_pendingOnlineUsers.Count > 0)
             {
@@ -178,7 +181,10 @@ namespace DTAClient.Online.Backend
                 
                 foreach (var onlineUser in _pendingOnlineUsers)
                 {
-                    var ircUser = new IRCUser(onlineUser.Nickname, onlineUser.UserId ?? string.Empty, onlineUser.UserId ?? string.Empty);
+                    string nickname = onlineUser.Nickname ?? $"User_{onlineUser.UserId}";
+                    string userId = onlineUser.UserId ?? onlineUser.SessionId;
+                    
+                    var ircUser = new IRCUser(nickname, userId, userId);
                     ircUser.IsGuest = onlineUser.IsGuest;
                     ircUser.HasVoice = onlineUser.Level > 0;
                     
@@ -197,6 +203,7 @@ namespace DTAClient.Online.Backend
                 }
                 
                 _pendingOnlineUsers.Clear();
+                Logger.Log($"[BackendManager] Invoking MultipleUsersAdded from SetMainChannel");
                 MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -254,15 +261,20 @@ namespace DTAClient.Online.Backend
 
         private void OnOnlineUsersReceived(object? sender, OnlineUsersEventArgs e)
         {
-            Logger.Log($"[BackendManager] Received {e.Data.Users.Count} online users");
+            Logger.Log($"[BackendManager] Received {e.Data.Users.Count} online users, main channel is null: {_mainChannel == null}");
             
             _windowManager.AddCallback(() =>
             {
                 if (_mainChannel != null)
                 {
+                    Logger.Log($"[BackendManager] Adding {e.Data.Users.Count} users to main channel");
+                    
                     foreach (var onlineUser in e.Data.Users)
                     {
-                        var ircUser = new IRCUser(onlineUser.Nickname, onlineUser.UserId ?? string.Empty, onlineUser.UserId ?? string.Empty);
+                        string nickname = onlineUser.Nickname ?? $"User_{onlineUser.UserId}";
+                        string userId = onlineUser.UserId ?? onlineUser.SessionId;
+                        
+                        var ircUser = new IRCUser(nickname, userId, userId);
                         ircUser.IsGuest = onlineUser.IsGuest;
                         ircUser.HasVoice = onlineUser.Level > 0;
                         
@@ -280,6 +292,7 @@ namespace DTAClient.Online.Backend
                         _mainChannel.AddUser(channelUser);
                     }
                     
+                    Logger.Log($"[BackendManager] Invoking MultipleUsersAdded event");
                     MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
                 }
                 else

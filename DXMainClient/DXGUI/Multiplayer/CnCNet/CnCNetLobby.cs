@@ -574,6 +574,11 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             activeManager.WelcomeMessageReceived += ConnectionManager_WelcomeMessageReceived;
             activeManager.Disconnected += ConnectionManager_Disconnected;
             activeManager.PrivateCTCPReceived += ConnectionManager_PrivateCTCPReceived;
+            activeManager.MultipleUsersAdded += (sender, e) => 
+            {
+                Logger.Log("[CnCNetLobby] MultipleUsersAdded event fired, refreshing player list");
+                RefreshPlayerList(sender, e);
+            };
 
             cncnetUserData.UserFriendToggled += RefreshPlayerList;
             cncnetUserData.UserIgnoreToggled += RefreshPlayerList;
@@ -1069,7 +1074,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             gcw.Refresh();
         }
 
-        private void Gcw_GameCreated(object sender, GameCreationEventArgs e)
+        private async void Gcw_GameCreated(object sender, GameCreationEventArgs e)
         {
             if (gameLobby.Enabled || gameLoadingLobby.Enabled)
                 return;
@@ -1084,20 +1089,44 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 isCustomPassword = false;
             }
 
-            Channel gameChannel = activeManager.CreateChannel(e.GameRoomName, channelName, false, true, password);
-            activeManager.AddChannel(gameChannel);
-            gameLobby.SetUp(gameChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
-            gameChannel.UserAdded += GameChannel_UserAdded;
-            //gameChannel.MessageAdded += GameChannel_MessageAdded;
-            activeManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + password,
-                QueuedMessageType.INSTANT_MESSAGE, 0));
-            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
-               string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
+            if (_backendManager != null)
+            {
+                try
+                {
+                    var backendChannel = await _backendManager.SpaceManager.CreateRoomAsync(e.GameRoomName, e.MaxPlayers, !isCustomPassword);
+                    activeManager.AddChannel(backendChannel);
+                    gameLobby.SetUp(backendChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
+                    backendChannel.UserAdded += GameChannel_UserAdded;
+                    backendChannel.JoinBackend();
+                    
+                    activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
+                       string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
+                    
+                    gameCreationPanel.Hide();
+                    
+                    pmWindow.SetInviteChannelInfo(backendChannel.ChannelName, e.GameRoomName, string.IsNullOrEmpty(e.Password) ? string.Empty : e.Password);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"[CnCNetLobby] 创建房间失败: {ex.Message}");
+                    activeManager.MainChannel.AddMessage(new ChatMessage(Color.Red, $"创建房间失败: {ex.Message}"));
+                }
+            }
+            else
+            {
+                Channel gameChannel = activeManager.CreateChannel(e.GameRoomName, channelName, false, true, password);
+                activeManager.AddChannel(gameChannel);
+                gameLobby.SetUp(gameChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
+                gameChannel.UserAdded += GameChannel_UserAdded;
+                activeManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + password,
+                    QueuedMessageType.INSTANT_MESSAGE, 0));
+                activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
+                   string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
 
-            gameCreationPanel.Hide();
+                gameCreationPanel.Hide();
 
-            // update the friends window so it can enable the Invite option
-            pmWindow.SetInviteChannelInfo(channelName, e.GameRoomName, string.IsNullOrEmpty(e.Password) ? string.Empty : e.Password);
+                pmWindow.SetInviteChannelInfo(channelName, e.GameRoomName, string.IsNullOrEmpty(e.Password) ? string.Empty : e.Password);
+            }
         }
 
         private void Gcw_LoadedGameCreated(object sender, GameCreationEventArgs e)
@@ -1432,6 +1461,16 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void RefreshPlayerList(object sender, EventArgs e)
         {
+            Logger.Log($"[CnCNetLobby] RefreshPlayerList called, currentChatChannel is null: {currentChatChannel == null}");
+            
+            if (currentChatChannel == null)
+            {
+                Logger.Log("[CnCNetLobby] currentChatChannel is null, cannot refresh player list");
+                return;
+            }
+            
+            Logger.Log($"[CnCNetLobby] currentChatChannel.Users count: {currentChatChannel.Users.Count}");
+            
             string selectedUserName = lbPlayerList.SelectedItem == null ?
                 string.Empty : lbPlayerList.SelectedItem.Text;
 
@@ -1440,6 +1479,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             // Note: IUserCollection.GetFirst() is not guaranteed to be implemented, unless it is a SortedUserCollection
             Debug.Assert(currentChatChannel.Users is SortedUserCollection<ChannelUser>, "Channel 'users' is supposed to be a SortedUserCollection");
             var current = currentChatChannel.Users.GetFirst();
+            int userCount = 0;
             while (current != null)
             {
                 var user = current.Value;
@@ -1447,7 +1487,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 user.IRCUser.IsIgnored = cncnetUserData.IsIgnored(user.IRCUser.Ident);
                 lbPlayerList.AddUser(user);
                 current = current.Next;
+                userCount++;
             }
+            
+            Logger.Log($"[CnCNetLobby] Added {userCount} users to player list");
 
             if (selectedUserName != string.Empty)
             {
