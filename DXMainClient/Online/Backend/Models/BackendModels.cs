@@ -269,8 +269,14 @@ namespace DTAClient.Online.Backend.Models
         [JsonPropertyName("users")]
         public List<OnlineUserResponse> Users { get; set; } = new();
 
-        [JsonPropertyName("total")]
-        public int Total { get; set; }
+        [JsonPropertyName("total_count")]
+        public int TotalCount { get; set; }
+
+        [JsonPropertyName("guest_count")]
+        public int GuestCount { get; set; }
+
+        [JsonPropertyName("user_count")]
+        public int UserCount { get; set; }
     }
 
     public class WebSocketMessage

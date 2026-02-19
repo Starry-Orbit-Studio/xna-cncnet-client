@@ -1,3 +1,8 @@
+using ClientCore;
+using DTAClient.Domain.Multiplayer.CnCNet;
+using DTAClient.Online.EventArguments;
+using Rampastring.XNAUI;
+using System;
 using System.Collections.Generic;
 
 namespace DTAClient.Online
@@ -7,6 +12,56 @@ namespace DTAClient.Online
     /// </summary>
     public interface IConnectionManager
     {
+        event EventHandler<ServerMessageEventArgs> WelcomeMessageReceived;
+        event EventHandler<UserAwayEventArgs> AwayMessageReceived;
+        event EventHandler<WhoEventArgs> WhoReplyReceived;
+        event EventHandler<CnCNetPrivateMessageEventArgs> PrivateMessageReceived;
+        event EventHandler<PrivateCTCPEventArgs> PrivateCTCPReceived;
+        event EventHandler<ChannelEventArgs> BannedFromChannel;
+
+        event EventHandler<AttemptedServerEventArgs> AttemptedServerChanged;
+        event EventHandler ConnectAttemptFailed;
+        event EventHandler<ConnectionLostEventArgs> ConnectionLost;
+        event EventHandler ReconnectAttempt;
+        event EventHandler Disconnected;
+        event EventHandler Connected;
+
+        event EventHandler<UserEventArgs> UserAdded;
+        event EventHandler<UserEventArgs> UserGameIndexUpdated;
+        event EventHandler<UserNameIndexEventArgs> UserRemoved;
+        event EventHandler MultipleUsersAdded;
+
+        Channel MainChannel { get; set; }
+
+        bool IsConnected { get; }
+
+        bool IsAttemptingConnection { get; }
+
+        List<IRCUser> UserList { get; }
+
+        bool IsCnCNetInitialized();
+
+        Channel CreateChannel(string uiName, string channelName, bool persistent, bool isChatChannel, string password);
+
+        void AddChannel(Channel channel);
+
+        void RemoveChannel(Channel channel);
+
+        IRCColor[] GetIRCColors();
+
+        void LeaveFromChannel(Channel channel);
+
+        void SetMainChannel(Channel channel);
+
+        void SendCustomMessage(QueuedMessage qm);
+
+        void SendWhoIsMessage(string nick);
+
+        void RemoveChannelFromUser(string userName, string channelName);
+
+        Channel? FindChannel(string channelName);
+
+        void Disconnect();
         void OnWelcomeMessageReceived(string message);
 
         void OnGenericServerMessageReceived(string message);

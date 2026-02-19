@@ -29,6 +29,7 @@ namespace DTAClient.Online.Backend
         private Channel? _mainChannel;
         private readonly List<Channel> _channels = new();
         private readonly List<IRCUser> _userList = new();
+        private readonly List<Models.OnlineUserResponse> _pendingOnlineUsers = new();
 
         public event EventHandler<ServerMessageEventArgs>? WelcomeMessageReceived;
         public event EventHandler<UserAwayEventArgs>? AwayMessageReceived;
@@ -48,8 +49,16 @@ namespace DTAClient.Online.Backend
         public event EventHandler<UserNameIndexEventArgs>? UserRemoved;
         public event EventHandler? MultipleUsersAdded;
 
-        public Channel? MainChannel => _mainChannel;
-        public List<IRCUser> UserList => _userList;
+        public Channel? MainChannel
+        {
+            get => _mainChannel;
+            set => _mainChannel = value;
+        }
+        public List<IRCUser> UserList
+        {
+            get => _userList;
+            set { }
+        }
 
         public bool IsConnected => _sessionManager.IsConnected;
         public bool IsAttemptingConnection => false;
@@ -73,6 +82,7 @@ namespace DTAClient.Online.Backend
 
             _sessionManager.SessionCreated += OnSessionCreated;
             _sessionManager.SessionEnded += OnSessionEnded;
+            _sessionManager.OnlineUsersReceived += OnOnlineUsersReceived;
 
             _apiClient.DebugLog += OnDebugLog;
             _wsClient.DebugLog += OnDebugLog;
@@ -80,6 +90,8 @@ namespace DTAClient.Online.Backend
 
         private void OnDebugLog(object? sender, string message)
         {
+            Logger.Log($"[Backend] {message}");
+            
             if (_mainChannel != null && ClientConfiguration.Instance.EnableBackendDebugLog)
             {
                 _mainChannel.AddMessage(new ChatMessage(Color.Yellow, message));
@@ -152,6 +164,34 @@ namespace DTAClient.Online.Backend
         public void SetMainChannel(Channel channel)
         {
             _mainChannel = channel;
+            
+            if (_pendingOnlineUsers.Count > 0)
+            {
+                Logger.Log($"[BackendManager] Adding {_pendingOnlineUsers.Count} pending online users to main channel");
+                
+                foreach (var onlineUser in _pendingOnlineUsers)
+                {
+                    var ircUser = new IRCUser(onlineUser.Nickname, onlineUser.UserId ?? string.Empty, onlineUser.UserId ?? string.Empty);
+                    ircUser.IsGuest = onlineUser.IsGuest;
+                    ircUser.HasVoice = onlineUser.Level > 0;
+                    
+                    if (!_userList.Any(u => u.Name == ircUser.Name))
+                    {
+                        _userList.Add(ircUser);
+                    }
+                    
+                    var channelUser = new ChannelUser(ircUser)
+                    {
+                        IsAdmin = onlineUser.Level > 0,
+                        IsFriend = false
+                    };
+                    
+                    _mainChannel.AddUser(channelUser);
+                }
+                
+                _pendingOnlineUsers.Clear();
+                MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public void LeaveFromChannel(Channel channel)
@@ -168,6 +208,15 @@ namespace DTAClient.Online.Backend
 
         public void SendWhoIsMessage(string nick)
         {
+        }
+
+        public void RemoveChannelFromUser(string userName, string channelName)
+        {
+            var channel = FindChannel(channelName);
+            if (channel != null)
+            {
+                channel.OnUserLeft(userName);
+            }
         }
 
         public IRCColor[] GetIRCColors()
@@ -194,6 +243,44 @@ namespace DTAClient.Online.Backend
         private void OnSessionEnded(object? sender, EventArgs e)
         {
             Disconnected?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnOnlineUsersReceived(object? sender, OnlineUsersEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Received {e.Data.Users.Count} online users");
+            
+            _windowManager.AddCallback(() =>
+            {
+                if (_mainChannel != null)
+                {
+                    foreach (var onlineUser in e.Data.Users)
+                    {
+                        var ircUser = new IRCUser(onlineUser.Nickname, onlineUser.UserId ?? string.Empty, onlineUser.UserId ?? string.Empty);
+                        ircUser.IsGuest = onlineUser.IsGuest;
+                        ircUser.HasVoice = onlineUser.Level > 0;
+                        
+                        if (!_userList.Any(u => u.Name == ircUser.Name))
+                        {
+                            _userList.Add(ircUser);
+                        }
+                        
+                        var channelUser = new ChannelUser(ircUser)
+                        {
+                            IsAdmin = onlineUser.Level > 0,
+                            IsFriend = false
+                        };
+                        
+                        _mainChannel.AddUser(channelUser);
+                    }
+                    
+                    MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    Logger.Log($"[BackendManager] Main channel not set, storing {e.Data.Users.Count} online users for later");
+                    _pendingOnlineUsers.AddRange(e.Data.Users);
+                }
+            });
         }
 
         public void OnWelcomeMessageReceived(string message)

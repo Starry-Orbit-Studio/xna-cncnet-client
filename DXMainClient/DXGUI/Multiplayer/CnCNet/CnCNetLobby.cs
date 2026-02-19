@@ -246,7 +246,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbPlayerList.RightClick += LbPlayerList_RightClick;
 
             globalContextMenu = new GlobalContextMenu(WindowManager, connectionManager, cncnetUserData, pmWindow);
-            globalContextMenu.JoinEvent += (sender, args) => JoinUser(args.IrcUser, connectionManager.MainChannel);
+            globalContextMenu.JoinEvent += (sender, args) => JoinUser(args.IrcUser, activeManager.MainChannel);
 
             lbChatMessages = new ChatListBox(WindowManager);
             lbChatMessages.Name = nameof(lbChatMessages);
@@ -279,9 +279,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             ddColor.ClientRectangle = new Rectangle(lblColor.X + 95, 12,
                 150, 21);
 
-            chatColors = connectionManager.GetIRCColors();
+            chatColors = activeManager.GetIRCColors();
 
-            foreach (IRCColor color in connectionManager.GetIRCColors())
+            foreach (IRCColor color in activeManager.GetIRCColors())
             {
                 if (!color.Selectable)
                     continue;
@@ -510,27 +510,27 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
                 ddCurrentChannel.AddItem(item);
 
-                var chatChannel = connectionManager.FindChannel(game.ChatChannel);
+                var chatChannel = activeManager.FindChannel(game.ChatChannel);
 
                 if (chatChannel == null)
                 {
-                    chatChannel = connectionManager.CreateChannel(game.UIName, game.ChatChannel,
+                    chatChannel = activeManager.CreateChannel(game.UIName, game.ChatChannel,
                         true, true, "ra1-derp");
-                    connectionManager.AddChannel(chatChannel);
+                    activeManager.AddChannel(chatChannel);
                 }
 
                 item.Tag = chatChannel;
 
                 if (!string.IsNullOrEmpty(game.GameBroadcastChannel))
                 {
-                    var gameBroadcastChannel = connectionManager.FindChannel(game.GameBroadcastChannel);
+                    var gameBroadcastChannel = activeManager.FindChannel(game.GameBroadcastChannel);
 
                     if (gameBroadcastChannel == null)
                     {
-                        gameBroadcastChannel = connectionManager.CreateChannel(
+                        gameBroadcastChannel = activeManager.CreateChannel(
                             string.Format("{0} Broadcast Channel".L10N("Client:Main:BroadcastChannel"), game.UIName),
                             game.GameBroadcastChannel, true, false, null);
-                        connectionManager.AddChannel(gameBroadcastChannel);
+                        activeManager.AddChannel(gameBroadcastChannel);
                     }
 
                     gameBroadcastChannel.CTCPReceived += GameBroadcastChannel_CTCPReceived;
@@ -547,7 +547,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 i++;
             }
 
-            if (connectionManager.MainChannel == null)
+            if (activeManager.MainChannel == null)
             {
                 // Set CnCNet channel as main channel if no channel found
                 ddCurrentChannel.SelectedIndex = ddCurrentChannel.Items.Count - 1;
@@ -568,9 +568,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             unknownGameIcon = AssetLoader.TextureFromImage(Image.Load(unknownIconStream));
             adminGameIcon = AssetLoader.TextureFromImage(Image.Load(cncnetIconStream));
 
-            connectionManager.WelcomeMessageReceived += ConnectionManager_WelcomeMessageReceived;
-            connectionManager.Disconnected += ConnectionManager_Disconnected;
-            connectionManager.PrivateCTCPReceived += ConnectionManager_PrivateCTCPReceived;
+            activeManager.WelcomeMessageReceived += ConnectionManager_WelcomeMessageReceived;
+            activeManager.Disconnected += ConnectionManager_Disconnected;
+            activeManager.PrivateCTCPReceived += ConnectionManager_PrivateCTCPReceived;
 
             cncnetUserData.UserFriendToggled += RefreshPlayerList;
             cncnetUserData.UserIgnoreToggled += RefreshPlayerList;
@@ -592,7 +592,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             clientVersion = $"{GitVersionInformation.CommitDate} {GitVersionInformation.BranchName}@{GitVersionInformation.ShortSha}";
 #endif
 
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, Renderer.GetSafeString(
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White, Renderer.GetSafeString(
                     string.Format("*** DTA CnCNet Client version {0} ***".L10N("Client:Main:CnCNetClientVersionMessage"), clientVersion),
                     lbChatMessages.FontIndex)));
 
@@ -602,13 +602,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 #if DEVELOPMENT_BUILD
                 if (ClientConfiguration.Instance.ShowDevelopmentBuildWarnings)
                 {
-                    connectionManager.MainChannel.AddMessage(new ChatMessage(Color.Red, Renderer.GetSafeString(
+                    activeManager.MainChannel.AddMessage(new ChatMessage(Color.Red, Renderer.GetSafeString(
                             developBuildWarningMessage, lbChatMessages.FontIndex)));
                 }
 #endif
             }
 
-            connectionManager.BannedFromChannel += ConnectionManager_BannedFromChannel;
+            activeManager.BannedFromChannel += ConnectionManager_BannedFromChannel;
 
             loginWindow = new CnCNetLoginWindow(WindowManager, externalAccountService);
             loginWindow.Connect += LoginWindow_Connect;
@@ -650,13 +650,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             if (game == null)
             {
-                var chatChannel = connectionManager.FindChannel(e.ChannelName);
+                var chatChannel = activeManager.FindChannel(e.ChannelName);
                 chatChannel?.AddMessage(new ChatMessage(Color.White, string.Format(
                     "Cannot join chat channel {0}, you're banned!".L10N("Client:Main:PlayerBannedByChannel"), chatChannel.UIName)));
                 return;
             }
 
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, string.Format(
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White, string.Format(
                 "Cannot join game {0}, you've been banned by the game host!".L10N("Client:Main:PlayerBannedByHost"), game.RoomName)));
 
             isJoiningGame = false;
@@ -671,19 +671,19 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void SharedUILogic_GameProcessStarted()
         {
-            connectionManager.SendCustomMessage(new QueuedMessage("AWAY " + (char)58 + "In-game",
+            activeManager.SendCustomMessage(new QueuedMessage("AWAY " + (char)58 + "In-game",
                 QueuedMessageType.SYSTEM_MESSAGE, 0));
         }
 
         private void SharedUILogic_GameProcessExited()
         {
-            connectionManager.SendCustomMessage(new QueuedMessage("AWAY",
+            activeManager.SendCustomMessage(new QueuedMessage("AWAY",
                 QueuedMessageType.SYSTEM_MESSAGE, 0));
         }
 
         private void Instance_SettingsSaved(object sender, EventArgs e)
         {
-            if (!connectionManager.IsConnected)
+            if (!activeManager.IsConnected)
                 return;
 
             foreach (CnCNetGame game in gameCollection.GameList)
@@ -697,13 +697,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 if (followedGames.Contains(game.InternalName) &&
                     !UserINISettings.Instance.IsGameFollowed(game.InternalName.ToUpper()))
                 {
-                    connectionManager.FindChannel(game.GameBroadcastChannel).Leave();
+                    activeManager.FindChannel(game.GameBroadcastChannel).Leave();
                     followedGames.Remove(game.InternalName);
                 }
                 else if (!followedGames.Contains(game.InternalName) &&
                     UserINISettings.Instance.IsGameFollowed(game.InternalName.ToUpper()))
                 {
-                    connectionManager.FindChannel(game.GameBroadcastChannel).Join();
+                    activeManager.FindChannel(game.GameBroadcastChannel).Join();
                     followedGames.Add(game.InternalName);
                 }
             }
@@ -889,11 +889,11 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             string error = GetJoinGameErrorByIndex(gameIndex);
             if (!string.IsNullOrEmpty(error))
             {
-                connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, error));
+                activeManager.MainChannel.AddMessage(new ChatMessage(Color.White, error));
                 return false;
             }
 
-            return JoinGame((HostedCnCNetGame)lbGameList.HostedGames[gameIndex], password, connectionManager.MainChannel);
+            return JoinGame((HostedCnCNetGame)lbGameList.HostedGames[gameIndex], password, activeManager.MainChannel);
         }
 
         /// <summary>
@@ -953,13 +953,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void _JoinGame(HostedCnCNetGame hg, string password)
         {
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White,
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
                 string.Format("Attempting to join game {0} ...".L10N("Client:Main:AttemptJoin"), hg.RoomName)));
             isJoiningGame = true;
             gameOfLastJoinAttempt = hg;
 
-            Channel gameChannel = connectionManager.CreateChannel(hg.RoomName, hg.ChannelName, false, true, password);
-            connectionManager.AddChannel(gameChannel);
+            Channel gameChannel = activeManager.CreateChannel(hg.RoomName, hg.ChannelName, false, true, password);
+            activeManager.AddChannel(gameChannel);
 
             if (hg.IsLoadedGame)
             {
@@ -979,13 +979,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 gameChannel.TargetChangeTooFast += GameChannel_TargetChangeTooFast;
             }
 
-            connectionManager.SendCustomMessage(new QueuedMessage("JOIN " + hg.ChannelName + " " + password,
+            activeManager.SendCustomMessage(new QueuedMessage("JOIN " + hg.ChannelName + " " + password,
                 QueuedMessageType.INSTANT_MESSAGE, 0));
         }
 
         private void GameChannel_TargetChangeTooFast(object sender, MessageEventArgs e)
         {
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, e.Message));
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White, e.Message));
             ClearGameJoinAttempt((Channel)sender);
         }
 
@@ -995,7 +995,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void GameChannel_InviteOnlyErrorOnJoin(object sender, EventArgs e)
         {
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, "The selected game is locked!".L10N("Client:Main:GameLocked")));
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White, "The selected game is locked!".L10N("Client:Main:GameLocked")));
             var channel = (Channel)sender;
 
             var game = FindGameByChannelName(channel.ChannelName);
@@ -1019,7 +1019,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void GameChannel_InvalidPasswordEntered_NewGame(object sender, EventArgs e)
         {
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, "Incorrect password!".L10N("Client:Main:PasswordWrong")));
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White, "Incorrect password!".L10N("Client:Main:PasswordWrong")));
             ClearGameJoinAttempt((Channel)sender);
         }
 
@@ -1081,14 +1081,14 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 isCustomPassword = false;
             }
 
-            Channel gameChannel = connectionManager.CreateChannel(e.GameRoomName, channelName, false, true, password);
-            connectionManager.AddChannel(gameChannel);
+            Channel gameChannel = activeManager.CreateChannel(e.GameRoomName, channelName, false, true, password);
+            activeManager.AddChannel(gameChannel);
             gameLobby.SetUp(gameChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
             gameChannel.UserAdded += GameChannel_UserAdded;
             //gameChannel.MessageAdded += GameChannel_MessageAdded;
-            connectionManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + password,
+            activeManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + password,
                 QueuedMessageType.INSTANT_MESSAGE, 0));
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White,
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
                string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
 
             gameCreationPanel.Hide();
@@ -1104,13 +1104,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             string channelName = RandomizeChannelName();
 
-            Channel gameLoadingChannel = connectionManager.CreateChannel(e.GameRoomName, channelName, false, true, e.Password);
-            connectionManager.AddChannel(gameLoadingChannel);
+            Channel gameLoadingChannel = activeManager.CreateChannel(e.GameRoomName, channelName, false, true, e.Password);
+            activeManager.AddChannel(gameLoadingChannel);
             gameLoadingLobby.SetUp(true, e.Tunnel, gameLoadingChannel, ProgramConstants.PLAYERNAME);
             gameLoadingChannel.UserAdded += GameLoadingChannel_UserAdded;
-            connectionManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + e.Password,
+            activeManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + e.Password,
                 QueuedMessageType.INSTANT_MESSAGE, 0));
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White,
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
                string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
 
             gameCreationPanel.Hide();
@@ -1168,6 +1168,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             if (string.IsNullOrEmpty(tbChatInput.Text))
                 return;
 
+            if (ddColor.SelectedItem == null || ddColor.SelectedItem.Tag == null)
+                return;
+
             IRCColor selectedColor = (IRCColor)ddColor.SelectedItem.Tag;
 
             currentChatChannel.SendChatMessage(tbChatInput.Text, selectedColor);
@@ -1177,6 +1180,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void SetChatColor()
         {
+            if (ddColor.SelectedItem == null || ddColor.SelectedItem.Tag == null)
+                return;
+
             IRCColor selectedColor = (IRCColor)ddColor.SelectedItem.Tag;
             tbChatInput.TextColor = selectedColor.XnaColor;
             gameLobby.ChangeChatColor(selectedColor);
@@ -1222,14 +1228,14 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             ddCurrentChannel.AllowDropDown = true;
             tbChatInput.Enabled = true;
 
-            Channel cncnetChannel = connectionManager.FindChannel("#cncnet");
+            Channel cncnetChannel = activeManager.FindChannel("#cncnet");
             cncnetChannel?.Join();
 
             string localGameChatChannelName = gameCollection.GetGameChatChannelNameFromIdentifier(localGameID);
-            connectionManager.FindChannel(localGameChatChannelName).Join();
+            activeManager.FindChannel(localGameChatChannelName).Join();
 
             string localGameBroadcastChannel = gameCollection.GetGameBroadcastingChannelNameFromIdentifier(localGameID);
-            connectionManager.FindChannel(localGameBroadcastChannel).Join();
+            activeManager.FindChannel(localGameBroadcastChannel).Join();
 
             foreach (CnCNetGame game in gameCollection.GameList)
             {
@@ -1240,7 +1246,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 {
                     if (UserINISettings.Instance.IsGameFollowed(game.InternalName.ToUpper()))
                     {
-                        connectionManager.FindChannel(game.GameBroadcastChannel).Join();
+                        activeManager.FindChannel(game.GameBroadcastChannel).Join();
                         followedGames.Add(game.InternalName);
                     }
                 }
@@ -1288,7 +1294,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 // let the host know that we can't accept
                 // note this is not reached for the rejection case
-                connectionManager.SendCustomMessage(new QueuedMessage("PRIVMSG " + sender + " :\u0001" +
+                activeManager.SendCustomMessage(new QueuedMessage("PRIVMSG " + sender + " :\u0001" +
                     ProgramConstants.GAME_INVITATION_FAILED_CTCP_COMMAND + "\u0001",
                     QueuedMessageType.CHAT_MESSAGE, 0));
 
@@ -1385,7 +1391,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                     // Remove the assigned channels from the users so we don't have ghost users on the PM user list
                     currentChatChannel.Users.DoForAllUsers(user =>
                     {
-                        connectionManager.RemoveChannelFromUser(user.IRCUser.Name, currentChatChannel.ChannelName);
+                        activeManager.RemoveChannelFromUser(user.IRCUser.Name, currentChatChannel.ChannelName);
                     });
 
                     currentChatChannel.Leave();
@@ -1403,7 +1409,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             currentChatChannel.UserListReceived += RefreshPlayerList;
             currentChatChannel.MessageAdded += CurrentChatChannel_MessageAdded;
             currentChatChannel.UserGameIndexUpdated += CurrentChatChannel_UserGameIndexUpdated;
-            connectionManager.SetMainChannel(currentChatChannel);
+            activeManager.SetMainChannel(currentChatChannel);
 
             lbPlayerList.TopIndex = 0;
 
@@ -1702,10 +1708,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 return;
             }
 
-            if (connectionManager.IsConnected &&
+            if (activeManager.IsConnected &&
                 !UserINISettings.Instance.PersistentMode)
             {
-                connectionManager.Disconnect();
+                activeManager.Disconnect();
             }
 
             topBar.SwitchToPrimary();
@@ -1715,7 +1721,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             Enable();
 
-            if (!connectionManager.IsConnected && !connectionManager.IsAttemptingConnection)
+            if (!activeManager.IsConnected && !activeManager.IsAttemptingConnection)
             {
                 loginWindow.Enable();
                 loginWindow.LoadSettings();
@@ -1730,7 +1736,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private bool CanReceiveInvitationMessagesFrom(string username)
         {
-            IRCUser iu = connectionManager.UserList.Find(u => u.Name == username);
+            IRCUser iu = activeManager.UserList.Find(u => u.Name == username);
 
             // We don't accept invitation messages from people who we don't share any channels with
             if (iu == null)
@@ -1751,7 +1757,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             Texture2D senderGameIcon = unknownGameIcon;
 
-            IRCUser iu = connectionManager.UserList.Find(u => u.Name == username);
+            IRCUser iu = activeManager.UserList.Find(u => u.Name == username);
 
             if (iu != null && iu.GameID >= 0 && iu.GameID < gameCollection.GameList.Count)
             {

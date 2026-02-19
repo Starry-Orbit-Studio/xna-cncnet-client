@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using DTAClient.Online.Backend.Models;
+using DTAClient;
 
 namespace DTAClient.Online.Backend
 {
@@ -99,6 +100,32 @@ namespace DTAClient.Online.Backend
 
             private class NullConnectionManager : IConnectionManager
             {
+                public event EventHandler<ServerMessageEventArgs> WelcomeMessageReceived;
+                public event EventHandler<UserAwayEventArgs> AwayMessageReceived;
+                public event EventHandler<WhoEventArgs> WhoReplyReceived;
+                public event EventHandler<CnCNetPrivateMessageEventArgs> PrivateMessageReceived;
+                public event EventHandler<PrivateCTCPEventArgs> PrivateCTCPReceived;
+                public event EventHandler<ChannelEventArgs> BannedFromChannel;
+                public event EventHandler<AttemptedServerEventArgs> AttemptedServerChanged;
+                public event EventHandler ConnectAttemptFailed;
+                public event EventHandler<ConnectionLostEventArgs> ConnectionLost;
+                public event EventHandler ReconnectAttempt;
+                public event EventHandler Disconnected;
+                public event EventHandler Connected;
+                public event EventHandler<UserEventArgs> UserAdded;
+                public event EventHandler<UserEventArgs> UserGameIndexUpdated;
+                public event EventHandler<UserNameIndexEventArgs> UserRemoved;
+                public event EventHandler MultipleUsersAdded;
+
+                public Channel MainChannel { get; set; }
+                public bool IsConnected => false;
+                public bool IsAttemptingConnection => false;
+                public List<IRCUser> UserList
+                {
+                    get => new List<IRCUser>();
+                    set { }
+                }
+
                 public void OnWelcomeMessageReceived(string message) { }
                 public void OnGenericServerMessageReceived(string message) { }
                 public void OnAwayMessageReceived(string userName, string reason) { }
@@ -132,6 +159,19 @@ namespace DTAClient.Online.Backend
                 public bool GetDisconnectStatus() => false;
                 public void OnServerLatencyTested(int candidateCount, int closerCount) { }
                 public void Connect() { }
+
+                public bool IsCnCNetInitialized() => false;
+                public Channel CreateChannel(string uiName, string channelName, bool persistent, bool isChatChannel, string password) => null;
+                public void AddChannel(Channel channel) { }
+                public void RemoveChannel(Channel channel) { }
+                public IRCColor[] GetIRCColors() => Array.Empty<IRCColor>();
+                public void LeaveFromChannel(Channel channel) { }
+                public void SetMainChannel(Channel channel) { }
+                public void SendCustomMessage(QueuedMessage qm) { }
+                public void SendWhoIsMessage(string nick) { }
+                public void RemoveChannelFromUser(string userName, string channelName) { }
+                public Channel? FindChannel(string channelName) => null;
+                public void Disconnect() { }
             }
         }
     }

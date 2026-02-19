@@ -301,8 +301,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             tunnelHandler.CurrentTunnel = tunnel;
             tunnelHandler.CurrentTunnelPinged += TunnelHandler_CurrentTunnelPinged;
 
-            connectionManager.ConnectionLost += ConnectionManager_ConnectionLost;
-            connectionManager.Disconnected += ConnectionManager_Disconnected;
+            activeManager.ConnectionLost += ConnectionManager_ConnectionLost;
+            activeManager.Disconnected += ConnectionManager_Disconnected;
 
             Refresh(isHost);
         }
@@ -330,12 +330,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             if (IsHost)
             {
-                connectionManager.SendCustomMessage(new QueuedMessage(
+                activeManager.SendCustomMessage(new QueuedMessage(
                     string.Format("MODE {0} +klnNs {1} {2}", channel.ChannelName,
                     channel.Password, playerLimit),
                     QueuedMessageType.SYSTEM_MESSAGE, 50));
 
-                connectionManager.SendCustomMessage(new QueuedMessage(
+                activeManager.SendCustomMessage(new QueuedMessage(
                     string.Format("TOPIC {0} :{1}", channel.ChannelName,
                     ProgramConstants.CNCNET_PROTOCOL_REVISION + ";" + localGame.ToLower()),
                     QueuedMessageType.SYSTEM_MESSAGE, 50));
@@ -597,14 +597,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     channel.ChannelModesChanged -= Channel_ChannelModesChanged;
                 }
 
-                connectionManager.RemoveChannel(channel);
+                activeManager.RemoveChannel(channel);
             }
 
             Disable();
             PlayerExtraOptionsPanel?.Disable();
 
-            connectionManager.ConnectionLost -= ConnectionManager_ConnectionLost;
-            connectionManager.Disconnected -= ConnectionManager_Disconnected;
+            activeManager.ConnectionLost -= ConnectionManager_ConnectionLost;
+            activeManager.Disconnected -= ConnectionManager_Disconnected;
 
             gameBroadcastTimer.Enabled = false;
             closed = false;
@@ -686,7 +686,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             if (e.UserName == hostName)
             {
-                connectionManager.MainChannel.AddMessage(new ChatMessage(
+                activeManager.MainChannel.AddMessage(new ChatMessage(
                     ERROR_MESSAGE_COLOR, "The game host abandoned the game.".L10N("Client:Main:HostAbandoned")));
                 BtnLeaveGame_LeftClick(this, EventArgs.Empty);
             }
@@ -700,7 +700,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             if (e.UserName == hostName)
             {
-                connectionManager.MainChannel.AddMessage(new ChatMessage(
+                activeManager.MainChannel.AddMessage(new ChatMessage(
                     ERROR_MESSAGE_COLOR, "The game host abandoned the game.".L10N("Client:Main:HostAbandoned")));
                 BtnLeaveGame_LeftClick(this, EventArgs.Empty);
             }
@@ -712,7 +712,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             if (e.UserName == PlayerIdentityService.Instance.GetIRCName())
             {
-                connectionManager.MainChannel.AddMessage(new ChatMessage(
+                activeManager.MainChannel.AddMessage(new ChatMessage(
                     ERROR_MESSAGE_COLOR, "You were kicked from the game!".L10N("Client:Main:YouWereKicked")));
                 Clear();
                 this.Visible = false;
@@ -737,7 +737,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 if (channel.Users.Find(hostName) == null)
                 {
-                    connectionManager.MainChannel.AddMessage(new ChatMessage(
+                    activeManager.MainChannel.AddMessage(new ChatMessage(
                         ERROR_MESSAGE_COLOR, "The game host has abandoned the game.".L10N("Client:Main:HostHasAbandoned")));
                     BtnLeaveGame_LeftClick(this, EventArgs.Empty);
                 }
@@ -1835,7 +1835,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected override void LockGame()
         {
-            connectionManager.SendCustomMessage(new QueuedMessage(
+            activeManager.SendCustomMessage(new QueuedMessage(
                 string.Format("MODE {0} +i", channel.ChannelName), QueuedMessageType.INSTANT_MESSAGE, -1));
 
             Locked = true;
@@ -1845,7 +1845,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected override void UnlockGame(bool announce)
         {
-            connectionManager.SendCustomMessage(new QueuedMessage(
+            activeManager.SendCustomMessage(new QueuedMessage(
                 string.Format("MODE {0} -i", channel.ChannelName), QueuedMessageType.INSTANT_MESSAGE, -1));
 
             Locked = false;
@@ -1873,7 +1873,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             var pInfo = Players[playerIndex];
 
-            var user = connectionManager.UserList.Find(u => u.Name == pInfo.Name);
+            var user = activeManager.UserList.Find(u => u.Name == pInfo.Name);
 
             if (user != null)
             {
@@ -2268,7 +2268,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private void BroadcastGame()
         {
-            Channel broadcastChannel = connectionManager.FindChannel(gameCollection.GetGameBroadcastingChannelNameFromIdentifier(localGame));
+            Channel broadcastChannel = activeManager.FindChannel(gameCollection.GetGameBroadcastingChannelNameFromIdentifier(localGame));
 
             if (broadcastChannel == null)
                 return;

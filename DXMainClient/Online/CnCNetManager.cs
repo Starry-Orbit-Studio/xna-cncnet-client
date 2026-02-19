@@ -1,4 +1,4 @@
-﻿using ClientCore;
+using ClientCore;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.Online.EventArguments;
 using ClientCore.Extensions;
@@ -77,7 +77,7 @@ namespace DTAClient.Online
             };
         }
 
-        public Channel MainChannel { get; private set; }
+        public Channel MainChannel { get; set; }
 
         private bool connected = false;
 
@@ -98,7 +98,7 @@ namespace DTAClient.Online
         /// <summary>
         /// The list of all users that we can see on the IRC network.
         /// </summary>
-        public List<IRCUser> UserList = new List<IRCUser>();
+        public List<IRCUser> UserList { get; } = new List<IRCUser>();
 
         private Connection connection;
 
@@ -639,7 +639,7 @@ namespace DTAClient.Online
         private void AddUserToGlobalUserList(IRCUser user)
         {
             UserList.Add(user);
-            UserList = UserList.OrderBy(u => u.Name).ToList();
+            UserList.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
             UserAdded?.Invoke(this, new UserEventArgs(user));
         }
 
@@ -782,7 +782,7 @@ namespace DTAClient.Online
                 channelUserList.Add(channelUser);
             }
 
-            UserList = UserList.OrderBy(u => u.Name).ToList();
+            UserList.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
             MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
 
             channel.OnUserListReceived(channelUserList);
