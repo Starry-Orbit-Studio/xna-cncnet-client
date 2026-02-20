@@ -327,14 +327,13 @@ namespace DTAClient.Online.Backend
             });
         }
 
-        public async Task SendMessageAsync(string channel, string content, string type = "room")
+        public async Task SendMessageAsync(int spaceId, string content, string type = "room")
         {
             await SendAsync(new WebSocketClientMessage
             {
                 Action = "SEND_MESSAGE",
-                ChannelType = type,
-                ChannelId = channel,
-                Payload = new MessagePayload { Type = type, Content = content, Channel = channel }
+                SpaceId = spaceId,
+                Payload = new MessagePayload { Type = type, Content = content }
             });
         }
 

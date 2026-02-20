@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -332,6 +331,9 @@ namespace DTAClient.Online.Backend.Models
         [JsonPropertyName("action")]
         public string Action { get; set; } = string.Empty;
 
+        [JsonPropertyName("channel")]
+        public string? Channel { get; set; }
+
         [JsonPropertyName("channel_type")]
         public string? ChannelType { get; set; }
 
@@ -352,9 +354,6 @@ namespace DTAClient.Online.Backend.Models
 
         [JsonPropertyName("content")]
         public string Content { get; set; } = string.Empty;
-
-        [JsonPropertyName("channel")]
-        public string? Channel { get; set; }
     }
 
     public class UserJoinedEventData

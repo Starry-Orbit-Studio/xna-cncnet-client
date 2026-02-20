@@ -19,6 +19,7 @@ namespace DTAClient.Online.Backend
         private readonly ClientCore.ExternalAccount.ExternalAccountService _externalAccountService;
         private SessionResponse? _currentSession;
         private string? _lobbyChannel;
+        private int? _lobbySpaceId;
 
         public event EventHandler<SessionEventArgs>? SessionCreated;
         public event EventHandler<SessionEventArgs>? SessionUpdated;
@@ -33,6 +34,7 @@ namespace DTAClient.Online.Backend
         public SessionResponse? CurrentSession => _currentSession;
         public bool IsConnected => _wsClient.IsConnected;
         public string? LobbyChannel => _lobbyChannel;
+        public int? LobbySpaceId => _lobbySpaceId;
 
         public BackendSessionManager(
             BackendApiClient apiClient,
@@ -193,6 +195,7 @@ namespace DTAClient.Online.Backend
         {
             Logger.Log($"Backend WebSocket ready: {e.Data.UserInfo.Nickname}");
             _lobbyChannel = e.Data.LobbyInfo.Channel;
+            _lobbySpaceId = e.Data.LobbyInfo.Id;
             Ready?.Invoke(this, e);
         }
 

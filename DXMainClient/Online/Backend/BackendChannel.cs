@@ -51,8 +51,8 @@ namespace DTAClient.Online.Backend
         {
             AddMessage(new ChatMessage(ProgramConstants.PLAYERNAME, color.XnaColor, DateTime.Now, message));
 
-            string channel = _channel ?? _sessionManager.LobbyChannel ?? "room:1";
-            _ = _wsClient.SendMessageAsync(channel, message, IsChatChannel ? "room" : "lobby");
+            int spaceId = _spaceId != 0 ? _spaceId : _sessionManager.LobbySpaceId ?? 1;
+            _ = _wsClient.SendMessageAsync(spaceId, message, IsChatChannel ? "room" : "lobby");
         }
 
         public void JoinBackend()
