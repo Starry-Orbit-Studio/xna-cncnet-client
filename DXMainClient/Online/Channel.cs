@@ -1,4 +1,4 @@
-﻿using ClientCore;
+using ClientCore;
 using ClientCore.Enums;
 using DTAClient.Online.EventArguments;
 using System;
@@ -259,7 +259,7 @@ namespace DTAClient.Online
             MessageAdded?.Invoke(this, new IRCMessageEventArgs(message));
         }
 
-        public void SendChatMessage(string message, IRCColor color)
+        public virtual void SendChatMessage(string message, IRCColor color)
         {
             AddMessage(new ChatMessage(ProgramConstants.PLAYERNAME, color.XnaColor, DateTime.Now, message));
 

@@ -1197,14 +1197,31 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void TbChatInput_EnterPressed(object sender, EventArgs e)
         {
+            Logger.Log($"[CnCNetLobby] TbChatInput_EnterPressed called, text: {tbChatInput.Text}");
+            
             if (string.IsNullOrEmpty(tbChatInput.Text))
+            {
+                Logger.Log("[CnCNetLobby] Text is empty, returning");
                 return;
+            }
 
             if (ddColor.SelectedItem == null || ddColor.SelectedItem.Tag == null)
+            {
+                Logger.Log("[CnCNetLobby] No color selected, returning");
                 return;
+            }
 
+            if (currentChatChannel == null)
+            {
+                Logger.Log("[CnCNetLobby] currentChatChannel is null, returning");
+                return;
+            }
+
+            Logger.Log($"[CnCNetLobby] currentChatChannel type: {currentChatChannel.GetType().Name}");
+            
             IRCColor selectedColor = (IRCColor)ddColor.SelectedItem.Tag;
 
+            Logger.Log($"[CnCNetLobby] Calling SendChatMessage");
             currentChatChannel.SendChatMessage(tbChatInput.Text, selectedColor);
 
             tbChatInput.Text = string.Empty;

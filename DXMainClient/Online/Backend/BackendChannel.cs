@@ -40,6 +40,11 @@ namespace DTAClient.Online.Backend
             _playerIdentityService = playerIdentityService;
         }
 
+        public override void SendChatMessage(string message, IRCColor color)
+        {
+            SendChatMessageBackend(message, color);
+        }
+
         public void SendChatMessageBackend(string message, IRCColor color)
         {
             AddMessage(new ChatMessage(ProgramConstants.PLAYERNAME, color.XnaColor, DateTime.Now, message));

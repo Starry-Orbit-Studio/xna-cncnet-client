@@ -276,6 +276,11 @@ namespace DTAClient.DXGUI.Multiplayer
             ddColor.SelectedIndex = selectedColor >= ddColor.Items.Count || selectedColor < 0
                 ? 0 : selectedColor;
 
+            if (ddColor.SelectedItem == null && ddColor.Items.Count > 0)
+            {
+                ddColor.SelectedIndex = 0;
+            }
+            
             SetChatColor();
             ddColor.SelectedIndexChanged += DdColor_SelectedIndexChanged;
 

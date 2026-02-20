@@ -62,6 +62,7 @@ namespace DTAClient.Online.Backend
                 }
 
                 _currentSession = new SessionResponse { Id = ticketResponse.SessionId };
+                SessionCreated?.Invoke(this, new SessionEventArgs(_currentSession));
                 await ConnectWebSocketAsync(ticketResponse.WsTicket);
             }
             catch (Exception ex)
