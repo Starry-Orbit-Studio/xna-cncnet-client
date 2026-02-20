@@ -289,6 +289,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbTunnelList.Enable();
             btnDisplayAdvancedOptions.Disable();
 
+            tunnelHandler.RefreshTunnelsAsync();
+
             SetAttributesFromIni();
 
             CenterOnParent();
