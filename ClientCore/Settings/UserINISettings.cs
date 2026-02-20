@@ -145,10 +145,11 @@ namespace ClientCore
 
             CheckForUpdates = new BoolSetting(iniFile, OPTIONS, "CheckforUpdates", true);
 
-            PrivacyPolicyAccepted = new BoolSetting(iniFile, OPTIONS, "PrivacyPolicyAccepted", false);
-            IsFirstRun = new BoolSetting(iniFile, OPTIONS, "IsFirstRun", true);
-            BackendSessionId = new StringSetting(iniFile, OPTIONS, "BackendSessionId", string.Empty);
-            CustomComponentsDenied = new BoolSetting(iniFile, OPTIONS, "CustomComponentsDenied", false);
+        PrivacyPolicyAccepted = new BoolSetting(iniFile, OPTIONS, "PrivacyPolicyAccepted", false);
+        IsFirstRun = new BoolSetting(iniFile, OPTIONS, "IsFirstRun", true);
+        BackendSessionId = new StringSetting(iniFile, OPTIONS, "BackendSessionId", string.Empty);
+        GuestUid = new StringSetting(iniFile, OPTIONS, "GuestUid", string.Empty);
+        CustomComponentsDenied = new BoolSetting(iniFile, OPTIONS, "CustomComponentsDenied", false);
             Difficulty = new IntSetting(iniFile, OPTIONS, "Difficulty", 1);
             ScrollDelay = new IntSetting(iniFile, OPTIONS, "ScrollDelay", 4);
             GameSpeed = new IntSetting(iniFile, OPTIONS, "GameSpeed", 1);
@@ -284,6 +285,7 @@ namespace ClientCore
         public BoolSetting PrivacyPolicyAccepted { get; private set; }
         public BoolSetting IsFirstRun { get; private set; }
         public StringSetting BackendSessionId { get; private set; }
+        public StringSetting GuestUid { get; private set; }
         public BoolSetting CustomComponentsDenied { get; private set; }
 
         public IntSetting Difficulty { get; private set; }

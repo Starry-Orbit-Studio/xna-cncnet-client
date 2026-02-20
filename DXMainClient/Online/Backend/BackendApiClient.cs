@@ -40,6 +40,32 @@ namespace DTAClient.Online.Backend
 
         public string? SessionId => _sessionId;
 
+        public async Task<AuthTokenResponse> LoginAsGuestAsync(GuestLoginRequest request)
+        {
+            return await PostAsync<AuthTokenResponse>("/api/v1/auth/login/guest", request);
+        }
+
+        public async Task<AuthTokenResponse> LoginWithOAuthAsync(string provider, string code, List<string>? hwidList = null)
+        {
+            var requestBody = new Dictionary<string, object>
+            {
+                { "code", code }
+            };
+
+            if (hwidList != null && hwidList.Count > 0)
+            {
+                requestBody["hwid_list"] = hwidList;
+            }
+
+            var json = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var request = new HttpRequestMessage(HttpMethod.Post, _baseUrl + $"/api/v1/auth/login/{provider}");
+            request.Content = content;
+
+            return await SendRequestAsync<AuthTokenResponse>(request);
+        }
+
         public async Task<ConnectTicketResponse> ConnectAsUserAsync()
         {
             var response = await PostAsync<ConnectTicketResponse>("/api/v1/sessions/connect", null);
@@ -47,6 +73,7 @@ namespace DTAClient.Online.Backend
             return response;
         }
 
+        [Obsolete("Use LoginAsGuestAsync with GuestLoginRequest instead")]
         public async Task<ConnectTicketResponse> ConnectAsGuestAsync(string? guestName = null)
         {
             var request = new ConnectTicketRequest { GuestName = guestName };

@@ -12,6 +12,27 @@ namespace DTAClient.Online.Backend.Models
         public string? GuestName { get; set; }
     }
 
+    public class GuestLoginRequest
+    {
+        [JsonPropertyName("guest_uid")]
+        public string GuestUid { get; set; } = string.Empty;
+
+        [JsonPropertyName("nickname")]
+        public string? Nickname { get; set; }
+
+        [JsonPropertyName("hwid_list")]
+        public List<string> HwidList { get; set; } = new();
+    }
+
+    public class AuthTokenResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string AccessToken { get; set; } = string.Empty;
+
+        [JsonPropertyName("token_type")]
+        public string TokenType { get; set; } = string.Empty;
+    }
+
     public class ConnectTicketRequest
     {
         [JsonPropertyName("guest_name")]
@@ -39,7 +60,7 @@ namespace DTAClient.Online.Backend.Models
         public string Id { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int? UserId { get; set; }
+        public string? UserId { get; set; }
 
         [JsonPropertyName("is_guest")]
         public bool IsGuest { get; set; }
@@ -342,7 +363,7 @@ namespace DTAClient.Online.Backend.Models
         public string SessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [JsonPropertyName("nickname")]
         public string Nickname { get; set; } = string.Empty;
@@ -363,13 +384,13 @@ namespace DTAClient.Online.Backend.Models
         public string SessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
     }
 
     public class UserStatusChangedEventData
     {
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [JsonPropertyName("old_status")]
         public string OldStatus { get; set; } = string.Empty;
@@ -504,7 +525,7 @@ namespace DTAClient.Online.Backend.Models
     public class NotificationEventData
     {
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
@@ -534,7 +555,7 @@ namespace DTAClient.Online.Backend.Models
         public string SessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
     }
 
     public class MatchCancelledEventData
@@ -567,7 +588,7 @@ namespace DTAClient.Online.Backend.Models
         public string SessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [JsonPropertyName("is_guest")]
         public bool IsGuest { get; set; }
@@ -580,6 +601,9 @@ namespace DTAClient.Online.Backend.Models
 
         [JsonPropertyName("level")]
         public int Level { get; set; }
+
+        [JsonPropertyName("role")]
+        public string? Role { get; set; }
     }
 
     public class ReadyLobbyInfo

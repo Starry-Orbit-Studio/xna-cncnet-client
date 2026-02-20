@@ -14,6 +14,7 @@ namespace DTAClient.Online.Backend
         private readonly BackendApiClient _apiClient;
         private readonly BackendWebSocketClient _wsClient;
         private readonly PlayerIdentityService _playerIdentityService;
+        private readonly GuestIdentityService _guestIdentityService;
         private SessionResponse? _currentSession;
         private string? _lobbyChannel;
 
@@ -27,12 +28,17 @@ namespace DTAClient.Online.Backend
         public SessionResponse? CurrentSession => _currentSession;
         public bool IsConnected => _wsClient.IsConnected;
         public string? LobbyChannel => _lobbyChannel;
-        
-        public BackendSessionManager(BackendApiClient apiClient, BackendWebSocketClient wsClient, PlayerIdentityService playerIdentityService)
+
+        public BackendSessionManager(
+            BackendApiClient apiClient,
+            BackendWebSocketClient wsClient,
+            PlayerIdentityService playerIdentityService,
+            GuestIdentityService guestIdentityService)
         {
             _apiClient = apiClient;
             _wsClient = wsClient;
             _playerIdentityService = playerIdentityService;
+            _guestIdentityService = guestIdentityService;
 
             _wsClient.Connected += OnWebSocketConnected;
             _wsClient.Disconnected += OnWebSocketDisconnected;
@@ -49,17 +55,22 @@ namespace DTAClient.Online.Backend
         {
             try
             {
-                ConnectTicketResponse ticketResponse;
+                string accessToken;
 
                 if (_playerIdentityService.IsLoggedIn())
                 {
-                    _apiClient.SetAccessToken(_playerIdentityService.GetAccessToken());
-                    ticketResponse = await _apiClient.ConnectAsUserAsync();
+                    Logger.Log("[BackendSessionManager] User is logged in with OAuth, using access token");
+                    accessToken = _playerIdentityService.GetAccessToken();
+                    _apiClient.SetAccessToken(accessToken);
                 }
                 else
                 {
-                    ticketResponse = await _apiClient.ConnectAsGuestAsync(guestName);
+                    Logger.Log("[BackendSessionManager] User is not logged in, attempting guest login");
+                    accessToken = await _guestIdentityService.LoginAsGuestAsync(guestName);
                 }
+
+                Logger.Log("[BackendSessionManager] Obtained access token, requesting WebSocket ticket");
+                var ticketResponse = await _apiClient.ConnectAsUserAsync();
 
                 _currentSession = new SessionResponse { Id = ticketResponse.SessionId };
                 SessionCreated?.Invoke(this, new SessionEventArgs(_currentSession));
@@ -67,7 +78,7 @@ namespace DTAClient.Online.Backend
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to connect to lobby: {ex.Message}");
+                Logger.Log($"[BackendSessionManager] Failed to connect to lobby: {ex.Message}");
                 throw;
             }
         }

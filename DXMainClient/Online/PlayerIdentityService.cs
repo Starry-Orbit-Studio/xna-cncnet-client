@@ -114,6 +114,26 @@ namespace DTAClient.Online
         {
             return _externalAccountService.AccessToken;
         }
+
+        /// <summary>
+        /// 获取当前用户角色
+        /// </summary>
+        public string GetRole()
+        {
+            return IsGuest() ? "guest" : "user";
+        }
+
+        /// <summary>
+        /// 获取当前用户ID
+        /// </summary>
+        public string? GetUserId()
+        {
+            if (_externalAccountService.IsLoggedIn)
+            {
+                return _externalAccountService.CurrentUser?.Id;
+            }
+            return null;
+        }
     }
 }
 

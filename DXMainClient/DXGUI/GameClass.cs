@@ -264,6 +264,7 @@ namespace DTAClient.DXGUI
                              .AddSingleton<DirectDrawWrapperManager>()
                             .AddSingleton<ClientCore.ExternalAccount.ExternalAccountService>()
                             .AddSingleton<PlayerIdentityService>()
+                            .AddSingleton<GuestIdentityService>()
                             .AddSingleton<Online.Backend.BackendApiClient>(provider =>
                             {
                                 var baseUrl = ClientConfiguration.Instance.BackendApiBaseUrl;
@@ -280,7 +281,8 @@ namespace DTAClient.DXGUI
                                 var apiClient = provider.GetRequiredService<Online.Backend.BackendApiClient>();
                                 var wsClient = provider.GetRequiredService<Online.Backend.BackendWebSocketClient>();
                                 var playerIdentityService = provider.GetRequiredService<PlayerIdentityService>();
-                                return new Online.Backend.BackendSessionManager(apiClient, wsClient, playerIdentityService);
+                                var guestIdentityService = provider.GetRequiredService<GuestIdentityService>();
+                                return new Online.Backend.BackendSessionManager(apiClient, wsClient, playerIdentityService, guestIdentityService);
                             })
                             .AddSingleton<Online.Backend.BackendSpaceManager>()
                             .AddSingleton<Online.Backend.BackendManager>();
