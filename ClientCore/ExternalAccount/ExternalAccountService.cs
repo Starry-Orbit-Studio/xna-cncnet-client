@@ -24,7 +24,7 @@ namespace ClientCore.ExternalAccount
         private string _authToken;
         private string _refreshToken;
         private UserInfo _userInfo;
-        
+
         private string _loginEndpoint = "api/auth/login";
         private string _refreshEndpoint = "api/auth/refresh";
         private string _userInfoEndpoint = "users/me";
@@ -34,7 +34,7 @@ namespace ClientCore.ExternalAccount
 
         public event EventHandler LoginStateChanged;
         public event EventHandler UserInfoUpdated;
-        
+
         /// <summary>
         /// 获取最后一次操作的错误信息
         /// </summary>
@@ -59,11 +59,11 @@ namespace ClientCore.ExternalAccount
         {
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(GetUserAgent());
-            
+
             _tokenStorage = new SecureTokenStorage(ProgramConstants.GamePath);
-            
+
             LoadTokens();
-            
+
             // 自动设置API基础地址
             InitializeBaseAddress();
         }
@@ -97,14 +97,14 @@ namespace ClientCore.ExternalAccount
         {
             if (!Uri.TryCreate(baseAddress, UriKind.Absolute, out Uri uri))
                 throw new ArgumentException("无效的BaseAddress");
-                
+
             // 确保BaseAddress以斜杠结尾，以便正确组合相对路径
             if (!uri.AbsoluteUri.EndsWith("/"))
             {
                 uri = new Uri(uri.AbsoluteUri + "/");
                 Rampastring.Tools.Logger.Log($"ExternalAccountService.SetBaseAddress: 调整为以斜杠结尾: {uri}");
             }
-                
+
             _httpClient.BaseAddress = uri;
             Rampastring.Tools.Logger.Log($"ExternalAccountService.SetBaseAddress: 设置为 {uri}");
         }
@@ -176,7 +176,7 @@ namespace ClientCore.ExternalAccount
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.PostAsync(_loginEndpoint, content);
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
                     LastError = $"服务器返回错误: {(int)response.StatusCode} {response.ReasonPhrase}";
@@ -188,12 +188,12 @@ namespace ClientCore.ExternalAccount
 
                 _authToken = loginResult.AccessToken;
                 _refreshToken = loginResult.RefreshToken;
-                
+
                 // 获取用户信息
                 await FetchUserInfoAsync();
-                
+
                 SaveTokens();
-                
+
                 LoginStateChanged?.Invoke(this, EventArgs.Empty);
                 return true;
             }
@@ -220,9 +220,9 @@ namespace ClientCore.ExternalAccount
             _refreshToken = null;
             _userInfo = null;
             UserInfoUpdated?.Invoke(this, EventArgs.Empty);
-            
+
             ClearTokens();
-            
+
             LoginStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -249,7 +249,7 @@ namespace ClientCore.ExternalAccount
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.PostAsync(_refreshEndpoint, content);
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
                     LastError = $"刷新令牌失败: {(int)response.StatusCode} {response.ReasonPhrase}";
@@ -261,7 +261,7 @@ namespace ClientCore.ExternalAccount
 
                 _authToken = refreshResult.AccessToken;
                 _refreshToken = refreshResult.RefreshToken;
-                
+
                 SaveTokens();
                 return true;
             }
@@ -294,7 +294,7 @@ namespace ClientCore.ExternalAccount
                 Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 发送请求到 {fullUrl}");
 
                 var response = await _httpClient.SendAsync(request);
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
                     LastError = $"获取用户信息失败: {(int)response.StatusCode} {response.ReasonPhrase}";
@@ -305,7 +305,7 @@ namespace ClientCore.ExternalAccount
                 Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 收到响应: {responseJson}");
                 _userInfo = JsonSerializer.Deserialize<UserInfo>(responseJson);
                 Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 用户信息反序列化成功 - Nickname: {_userInfo?.Nickname}, Avatar: {_userInfo?.Avatar}");
-                
+
                 UserInfoUpdated?.Invoke(this, EventArgs.Empty);
                 SaveTokens();
                 return true;
@@ -333,7 +333,7 @@ namespace ClientCore.ExternalAccount
             try
             {
                 _authToken = accessToken;
-                
+
                 if (userInfo != null)
                 {
                     _userInfo = userInfo;
@@ -349,9 +349,9 @@ namespace ClientCore.ExternalAccount
                         return false;
                     }
                 }
-                
+
                 SaveTokens();
-                
+
                 Rampastring.Tools.Logger.Log($"LoginWithOAuthAsync: 触发LoginStateChanged事件，订阅者数量: {LoginStateChanged?.GetInvocationList()?.Length ?? 0}");
                 LoginStateChanged?.Invoke(this, EventArgs.Empty);
                 Rampastring.Tools.Logger.Log($"LoginWithOAuthAsync: 登录成功，用户: {_userInfo?.Nickname ?? "未知"}");
@@ -375,7 +375,7 @@ namespace ClientCore.ExternalAccount
 
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
             var response = await _httpClient.SendAsync(request);
-            
+
             // 如果令牌过期，尝试刷新并重试一次
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -387,7 +387,7 @@ namespace ClientCore.ExternalAccount
                     response = await _httpClient.SendAsync(request);
                 }
             }
-            
+
             return response;
         }
 
@@ -718,7 +718,7 @@ namespace ClientCore.ExternalAccount
         public string Avatar { get; set; }
 
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         [JsonPropertyName("level")]
         public int Level { get; set; }
