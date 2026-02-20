@@ -282,7 +282,8 @@ namespace DTAClient.DXGUI
                                 var wsClient = provider.GetRequiredService<Online.Backend.BackendWebSocketClient>();
                                 var playerIdentityService = provider.GetRequiredService<PlayerIdentityService>();
                                 var guestIdentityService = provider.GetRequiredService<GuestIdentityService>();
-                                return new Online.Backend.BackendSessionManager(apiClient, wsClient, playerIdentityService, guestIdentityService);
+                                var externalAccountService = provider.GetRequiredService<ClientCore.ExternalAccount.ExternalAccountService>();
+                                return new Online.Backend.BackendSessionManager(apiClient, wsClient, playerIdentityService, guestIdentityService, externalAccountService);
                             })
                             .AddSingleton<Online.Backend.BackendSpaceManager>()
                             .AddSingleton<Online.Backend.BackendManager>();

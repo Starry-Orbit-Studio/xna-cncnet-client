@@ -88,6 +88,9 @@ namespace DTAClient.Online.Backend
             _sessionManager.SessionCreated += OnSessionCreated;
             _sessionManager.SessionEnded += OnSessionEnded;
             _sessionManager.OnlineUsersReceived += OnOnlineUsersReceived;
+            _sessionManager.RoomMemberJoined += OnRoomMemberJoined;
+            _sessionManager.RoomMemberLeft += OnRoomMemberLeft;
+            _sessionManager.MessageReceived += OnMessageReceived;
 
             _apiClient.DebugLog += OnDebugLog;
             _wsClient.DebugLog += OnDebugLog;
@@ -436,6 +439,52 @@ namespace DTAClient.Online.Backend
 
         public void OnServerLatencyTested(int candidateCount, int closerCount)
         {
+        }
+
+        private void OnRoomMemberJoined(object? sender, RoomMemberJoinedEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Room member joined: {e.Data.Nickname} in room {e.Data.RoomId}");
+            
+            _windowManager.AddCallback(() =>
+            {
+                var channel = FindChannel($"room:{e.Data.RoomId}");
+                if (channel != null)
+                {
+                    var ircUser = new IRCUser(e.Data.Nickname, e.Data.UserId.ToString(), e.Data.SessionId);
+                    var channelUser = new ChannelUser(ircUser);
+                    channel.AddUser(channelUser);
+                    UserAdded?.Invoke(this, new UserEventArgs(ircUser));
+                }
+            });
+        }
+
+        private void OnRoomMemberLeft(object? sender, RoomMemberLeftEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Room member left: user {e.Data.UserId} from room {e.Data.RoomId}");
+            
+            _windowManager.AddCallback(() =>
+            {
+                var channel = FindChannel($"room:{e.Data.RoomId}");
+                if (channel != null)
+                {
+                    channel.OnUserLeft(e.Data.UserId.ToString());
+                }
+            });
+        }
+
+        private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Message received: {e.Data.SenderNickname}: {e.Data.Content} in room {e.Data.RoomId}");
+            
+            _windowManager.AddCallback(() =>
+            {
+                var channel = FindChannel($"room:{e.Data.RoomId}");
+                if (channel != null)
+                {
+                    var color = new IRCColor(e.Data.SenderNickname, false, Color.White, 0);
+                    channel.AddMessage(new ChatMessage(e.Data.SenderNickname, color.XnaColor, DateTime.Now, e.Data.Content));
+                }
+            });
         }
     }
 }

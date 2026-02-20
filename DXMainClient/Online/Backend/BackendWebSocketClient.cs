@@ -332,6 +332,8 @@ namespace DTAClient.Online.Backend
             await SendAsync(new WebSocketClientMessage
             {
                 Action = "SEND_MESSAGE",
+                ChannelType = type,
+                ChannelId = channel,
                 Payload = new MessagePayload { Type = type, Content = content, Channel = channel }
             });
         }

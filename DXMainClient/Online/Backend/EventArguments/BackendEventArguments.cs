@@ -146,6 +146,16 @@ namespace DTAClient.Online.Backend.EventArguments
         }
     }
 
+    public class MessageReceivedEventArgs : EventArgs
+    {
+        public MessageSentEventData Data { get; }
+
+        public MessageReceivedEventArgs(MessageSentEventData data)
+        {
+            Data = data;
+        }
+    }
+
     public class MessageEditedEventArgs : EventArgs
     {
         public MessageEditedEventData Data { get; }
