@@ -117,7 +117,7 @@ namespace DTAClient.Online.Backend.Models
         public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("owner_user_id")]
-        public int OwnerUserId { get; set; }
+        public int? OwnerUserId { get; set; }
 
         [JsonPropertyName("max_members")]
         public int MaxMembers { get; set; }
@@ -414,7 +414,7 @@ namespace DTAClient.Online.Backend.Models
         public int MaxMembers { get; set; }
 
         [JsonPropertyName("owner_id")]
-        public int OwnerId { get; set; }
+        public int? OwnerId { get; set; }
     }
 
     public class RoomUpdatedEventData

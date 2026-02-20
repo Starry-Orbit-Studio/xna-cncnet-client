@@ -135,7 +135,7 @@ namespace DTAClient.Online.Backend
 
         private BackendChannel CreateChannelFromSpace(SpaceResponse space)
         {
-            return new BackendChannel(
+            var channel = new BackendChannel(
                 space.Name,
                 $"#{space.Id}",
                 false,
@@ -146,6 +146,8 @@ namespace DTAClient.Online.Backend
                 _wsClient,
                 _playerIdentityService
             );
+            channel.UpdateFromSpace(space);
+            return channel;
         }
     }
 }
