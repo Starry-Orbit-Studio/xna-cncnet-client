@@ -440,7 +440,7 @@ namespace DTAClient.Online.Backend.Models
         public string SessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [JsonPropertyName("nickname")]
         public string Nickname { get; set; } = string.Empty;
@@ -455,7 +455,7 @@ namespace DTAClient.Online.Backend.Models
         public string SessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
     }
 
     public class RoomStatusChangedEventData
@@ -473,7 +473,7 @@ namespace DTAClient.Online.Backend.Models
     public class MessageSentEventData
     {
         [JsonPropertyName("message_id")]
-        public int MessageId { get; set; }
+        public string MessageId { get; set; } = string.Empty;
 
         [JsonPropertyName("room_id")]
         public int RoomId { get; set; }
@@ -482,7 +482,7 @@ namespace DTAClient.Online.Backend.Models
         public string SenderSessionId { get; set; } = string.Empty;
 
         [JsonPropertyName("sender_user_id")]
-        public int SenderUserId { get; set; }
+        public string SenderUserId { get; set; } = string.Empty;
 
         [JsonPropertyName("sender_nickname")]
         public string SenderNickname { get; set; } = string.Empty;
@@ -497,7 +497,7 @@ namespace DTAClient.Online.Backend.Models
     public class MessageEditedEventData
     {
         [JsonPropertyName("message_id")]
-        public int MessageId { get; set; }
+        public string MessageId { get; set; } = string.Empty;
 
         [JsonPropertyName("new_content")]
         public string NewContent { get; set; } = string.Empty;
@@ -506,7 +506,7 @@ namespace DTAClient.Online.Backend.Models
     public class MessageDeletedEventData
     {
         [JsonPropertyName("message_id")]
-        public int MessageId { get; set; }
+        public string MessageId { get; set; } = string.Empty;
     }
 
     public class AnnouncementEventData
