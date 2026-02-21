@@ -94,6 +94,7 @@ namespace DTAClient.Online.Backend
             _sessionManager.RoomMemberJoined += OnRoomMemberJoined;
             _sessionManager.RoomMemberLeft += OnRoomMemberLeft;
             _sessionManager.MessageReceived += OnMessageReceived;
+            _sessionManager.Ready += OnReady;
             _sessionManager.RoomCreated += OnRoomCreated;
             _sessionManager.RoomUpdated += OnRoomUpdated;
             _sessionManager.RoomDeleted += OnRoomDeleted;
@@ -266,6 +267,48 @@ namespace DTAClient.Online.Backend
         private void OnSessionEnded(object? sender, EventArgs e)
         {
             Disconnected?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnReady(object? sender, ReadyEventArgs e)
+        {
+            Logger.Log($"[BackendManager] WebSocket ready, lobby info: {e.Data.LobbyInfo.Name} (ID: {e.Data.LobbyInfo.Id}, Channel: {e.Data.LobbyInfo.Channel})");
+
+            var lobbyInfo = e.Data.LobbyInfo;
+
+            var channel = new BackendChannel(
+                lobbyInfo.Name,
+                lobbyInfo.Channel,
+                false,
+                true,
+                null,
+                _apiClient,
+                _sessionManager,
+                _wsClient,
+                _playerIdentityService
+            );
+
+            var spaceResponse = new Models.SpaceResponse
+            {
+                Id = lobbyInfo.Id,
+                Name = lobbyInfo.Name,
+                Type = "lobby",
+                MaxMembers = 100,
+                IsPrivate = false,
+                Status = "active",
+                MemberCount = 0,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            channel.UpdateFromSpace(spaceResponse);
+            AddChannel(channel);
+
+            if (_mainChannel == null)
+            {
+                SetMainChannel(channel);
+            }
+
+            _ = channel.LoadMembersAsync();
         }
 
         private void OnOnlineUsersReceived(object? sender, OnlineUsersEventArgs e)
@@ -484,11 +527,18 @@ namespace DTAClient.Online.Backend
             
             _windowManager.AddCallback(() =>
             {
-                var channel = FindChannel($"room:{e.Data.RoomId}");
+                var channelName = $"room:{e.Data.RoomId}";
+                Logger.Log($"[BackendManager] Looking for channel: {channelName}");
+                Logger.Log($"[BackendManager] Available channels: {string.Join(", ", _channels.Select(c => c.ChannelName))}");
+                var channel = FindChannel(channelName);
                 if (channel != null)
                 {
                     var color = new IRCColor(e.Data.SenderNickname, false, Color.White, 0);
                     channel.AddMessage(new ChatMessage(e.Data.SenderNickname, color.XnaColor, DateTime.Now, e.Data.Content));
+                }
+                else
+                {
+                    Logger.Log($"[BackendManager] Channel not found: {channelName}");
                 }
             });
         }

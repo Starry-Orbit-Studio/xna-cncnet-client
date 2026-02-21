@@ -21,8 +21,10 @@ namespace DTAClient.Online.Backend
         private readonly PlayerIdentityService _playerIdentityService;
         private int _spaceId;
         private string? _channel;
-        
+
         public int SpaceId => _spaceId;
+
+        public new string ChannelName => _channel ?? base.ChannelName;
 
         public BackendChannel(
             string uiName,
