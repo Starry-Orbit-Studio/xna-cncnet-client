@@ -16,7 +16,6 @@ namespace DTAClient.Online.Backend
     {
         private ClientWebSocket? _webSocket;
         private readonly string _baseUrl;
-        private string? _sessionId;
         private readonly Timer _heartbeatTimer;
         private readonly TimeSpan _heartbeatInterval = TimeSpan.FromSeconds(30);
 
@@ -39,9 +38,9 @@ namespace DTAClient.Online.Backend
         public event EventHandler<NotificationEventArgs>? Notification;
         public event EventHandler<MatchFoundEventArgs>? MatchFound;
         public event EventHandler<MatchCancelledEventArgs>? MatchCancelled;
-        public event EventHandler<string>? DebugLog;
         public event EventHandler<ReadyEventArgs>? Ready;
         public event EventHandler<ErrorEventArgs>? Error;
+        public event EventHandler<string>? DebugLog;
 
         public bool IsConnected => _webSocket?.State == WebSocketState.Open;
 

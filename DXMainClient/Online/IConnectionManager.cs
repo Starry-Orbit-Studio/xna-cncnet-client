@@ -1,3 +1,4 @@
+#nullable enable
 using ClientCore;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.Online.EventArguments;
@@ -12,24 +13,24 @@ namespace DTAClient.Online
     /// </summary>
     public interface IConnectionManager
     {
-        event EventHandler<ServerMessageEventArgs> WelcomeMessageReceived;
-        event EventHandler<UserAwayEventArgs> AwayMessageReceived;
-        event EventHandler<WhoEventArgs> WhoReplyReceived;
-        event EventHandler<CnCNetPrivateMessageEventArgs> PrivateMessageReceived;
-        event EventHandler<PrivateCTCPEventArgs> PrivateCTCPReceived;
-        event EventHandler<ChannelEventArgs> BannedFromChannel;
+        event EventHandler<ServerMessageEventArgs>? WelcomeMessageReceived;
+        event EventHandler<UserAwayEventArgs>? AwayMessageReceived;
+        event EventHandler<WhoEventArgs>? WhoReplyReceived;
+        event EventHandler<CnCNetPrivateMessageEventArgs>? PrivateMessageReceived;
+        event EventHandler<PrivateCTCPEventArgs>? PrivateCTCPReceived;
+        event EventHandler<ChannelEventArgs>? BannedFromChannel;
 
-        event EventHandler<AttemptedServerEventArgs> AttemptedServerChanged;
-        event EventHandler ConnectAttemptFailed;
-        event EventHandler<ConnectionLostEventArgs> ConnectionLost;
-        event EventHandler ReconnectAttempt;
-        event EventHandler Disconnected;
-        event EventHandler Connected;
+        event EventHandler<AttemptedServerEventArgs>? AttemptedServerChanged;
+        event EventHandler? ConnectAttemptFailed;
+        event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
+        event EventHandler? ReconnectAttempt;
+        event EventHandler? Disconnected;
+        event EventHandler? Connected;
 
-        event EventHandler<UserEventArgs> UserAdded;
-        event EventHandler<UserEventArgs> UserGameIndexUpdated;
-        event EventHandler<UserNameIndexEventArgs> UserRemoved;
-        event EventHandler MultipleUsersAdded;
+        event EventHandler<UserEventArgs>? UserAdded;
+        event EventHandler<UserEventArgs>? UserGameIndexUpdated;
+        event EventHandler<UserNameIndexEventArgs>? UserRemoved;
+        event EventHandler? MultipleUsersAdded;
 
         Channel MainChannel { get; set; }
 

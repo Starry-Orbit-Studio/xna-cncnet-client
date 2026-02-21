@@ -56,7 +56,6 @@ namespace DTAClient.DXGUI.Generic.OptionPanels
 
         private bool GameCompatFixInstalled = false;
         private bool FinalSunCompatFixInstalled = false;
-        private bool GameCompatFixDeclined = false;
         //private bool FinalSunCompatFixDeclined = false;
 
 

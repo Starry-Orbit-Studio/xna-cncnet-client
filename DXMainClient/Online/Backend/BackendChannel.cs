@@ -116,24 +116,24 @@ namespace DTAClient.Online.Backend
 
             private class NullConnectionManager : IConnectionManager
             {
-                public event EventHandler<ServerMessageEventArgs> WelcomeMessageReceived;
-                public event EventHandler<UserAwayEventArgs> AwayMessageReceived;
-                public event EventHandler<WhoEventArgs> WhoReplyReceived;
-                public event EventHandler<CnCNetPrivateMessageEventArgs> PrivateMessageReceived;
-                public event EventHandler<PrivateCTCPEventArgs> PrivateCTCPReceived;
-                public event EventHandler<ChannelEventArgs> BannedFromChannel;
-                public event EventHandler<AttemptedServerEventArgs> AttemptedServerChanged;
-                public event EventHandler ConnectAttemptFailed;
-                public event EventHandler<ConnectionLostEventArgs> ConnectionLost;
-                public event EventHandler ReconnectAttempt;
-                public event EventHandler Disconnected;
-                public event EventHandler Connected;
-                public event EventHandler<UserEventArgs> UserAdded;
-                public event EventHandler<UserEventArgs> UserGameIndexUpdated;
-                public event EventHandler<UserNameIndexEventArgs> UserRemoved;
-                public event EventHandler MultipleUsersAdded;
+                public event EventHandler<ServerMessageEventArgs>? WelcomeMessageReceived;
+                public event EventHandler<UserAwayEventArgs>? AwayMessageReceived;
+                public event EventHandler<WhoEventArgs>? WhoReplyReceived;
+                public event EventHandler<CnCNetPrivateMessageEventArgs>? PrivateMessageReceived;
+                public event EventHandler<PrivateCTCPEventArgs>? PrivateCTCPReceived;
+                public event EventHandler<ChannelEventArgs>? BannedFromChannel;
+                public event EventHandler<AttemptedServerEventArgs>? AttemptedServerChanged;
+                public event EventHandler? ConnectAttemptFailed;
+                public event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
+                public event EventHandler? ReconnectAttempt;
+                public event EventHandler? Disconnected;
+                public event EventHandler? Connected;
+                public event EventHandler<UserEventArgs>? UserAdded;
+                public event EventHandler<UserEventArgs>? UserGameIndexUpdated;
+                public event EventHandler<UserNameIndexEventArgs>? UserRemoved;
+                public event EventHandler? MultipleUsersAdded;
 
-                public Channel MainChannel { get; set; }
+                public Channel? MainChannel { get; set; }
                 public bool IsConnected => false;
                 public bool IsAttemptingConnection => false;
                 public List<IRCUser> UserList

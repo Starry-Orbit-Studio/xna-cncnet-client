@@ -76,7 +76,7 @@ public abstract class IMEHandler : IIMEHandler
         // That said, you can try returning a WinFormsIMEHandler and test if it is stable enough now. Who knows?
         return new DummyIMEHandler();
 #elif GL
-        return new SdlIMEHandler(game);
+        return new SdlIMEHandler();
 #else
 #error Unknown variant
 #endif

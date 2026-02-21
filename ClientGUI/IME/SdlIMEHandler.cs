@@ -1,5 +1,4 @@
 ﻿#nullable enable
-using Microsoft.Xna.Framework;
 
 namespace ClientGUI.IME;
 
@@ -12,6 +11,6 @@ namespace ClientGUI.IME;
 /// the SDL2 main loop.<br/>
 /// Perhaps this requires some changes in Monogame.
 /// </remarks>
-internal sealed class SdlIMEHandler(Game game) : DummyIMEHandler
+internal sealed class SdlIMEHandler() : DummyIMEHandler
 {
 }

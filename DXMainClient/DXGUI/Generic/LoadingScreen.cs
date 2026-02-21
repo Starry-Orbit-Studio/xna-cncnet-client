@@ -48,8 +48,6 @@ namespace DTAClient.DXGUI.Generic
 
         private Random random;
 
-        private PrivateMessagingPanel privateMessagingPanel;
-
         private bool visibleSpriteCursor;
 
         private Task updaterInitTask;

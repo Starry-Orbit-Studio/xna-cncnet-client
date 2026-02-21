@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -476,7 +477,7 @@ namespace DTAClient.Online.Backend.Models
         public string MessageId { get; set; } = string.Empty;
 
         [JsonPropertyName("room_id")]
-        public int RoomId { get; set; }
+        public string RoomId { get; set; } = string.Empty;
 
         [JsonPropertyName("sender_session_id")]
         public string SenderSessionId { get; set; } = string.Empty;

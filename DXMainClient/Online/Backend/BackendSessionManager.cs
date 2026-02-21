@@ -22,7 +22,6 @@ namespace DTAClient.Online.Backend
         private int? _lobbySpaceId;
 
         public event EventHandler<SessionEventArgs>? SessionCreated;
-        public event EventHandler<SessionEventArgs>? SessionUpdated;
         public event EventHandler? SessionEnded;
         public event EventHandler<OnlineUsersEventArgs>? OnlineUsersReceived;
         public event EventHandler<ReadyEventArgs>? Ready;
