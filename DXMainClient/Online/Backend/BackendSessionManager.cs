@@ -29,6 +29,9 @@ namespace DTAClient.Online.Backend
         public event EventHandler<RoomMemberJoinedEventArgs>? RoomMemberJoined;
         public event EventHandler<RoomMemberLeftEventArgs>? RoomMemberLeft;
         public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+        public event EventHandler<RoomCreatedEventArgs>? RoomCreated;
+        public event EventHandler<RoomUpdatedEventArgs>? RoomUpdated;
+        public event EventHandler<RoomDeletedEventArgs>? RoomDeleted;
 
         public SessionResponse? CurrentSession => _currentSession;
         public bool IsConnected => _wsClient.IsConnected;
@@ -55,6 +58,9 @@ namespace DTAClient.Online.Backend
             _wsClient.Error += OnWebSocketError;
             _wsClient.RoomMemberJoined += OnRoomMemberJoined;
             _wsClient.RoomMemberLeft += OnRoomMemberLeft;
+            _wsClient.RoomCreated += OnRoomCreated;
+            _wsClient.RoomUpdated += OnRoomUpdated;
+            _wsClient.RoomDeleted += OnRoomDeleted;
         }
 
         public async Task InitializeAsync()
@@ -257,6 +263,24 @@ namespace DTAClient.Online.Backend
         {
             Logger.Log($"[BackendSessionManager] Room member left: user {e.Data.UserId} from room {e.Data.RoomId}");
             RoomMemberLeft?.Invoke(this, e);
+        }
+
+        private void OnRoomCreated(object? sender, RoomCreatedEventArgs e)
+        {
+            Logger.Log($"[BackendSessionManager] Room created: {e.Data.Name} (ID: {e.Data.Id})");
+            RoomCreated?.Invoke(this, e);
+        }
+
+        private void OnRoomUpdated(object? sender, RoomUpdatedEventArgs e)
+        {
+            Logger.Log($"[BackendSessionManager] Room updated: ID {e.Data.Id}");
+            RoomUpdated?.Invoke(this, e);
+        }
+
+        private void OnRoomDeleted(object? sender, RoomDeletedEventArgs e)
+        {
+            Logger.Log($"[BackendSessionManager] Room deleted: ID {e.Data.Id}");
+            RoomDeleted?.Invoke(this, e);
         }
     }
 }

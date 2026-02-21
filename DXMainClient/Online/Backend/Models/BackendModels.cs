@@ -401,35 +401,74 @@ namespace DTAClient.Online.Backend.Models
 
     public class RoomCreatedEventData
     {
-        [JsonPropertyName("room_id")]
-        public int RoomId { get; set; }
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
 
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
 
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("owner_user_id")]
+        public int? OwnerUserId { get; set; }
+
         [JsonPropertyName("max_members")]
         public int MaxMembers { get; set; }
 
-        [JsonPropertyName("owner_id")]
-        public int? OwnerId { get; set; }
+        [JsonPropertyName("is_private")]
+        public bool IsPrivate { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("member_count")]
+        public int MemberCount { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public DateTime UpdatedAt { get; set; }
     }
 
     public class RoomUpdatedEventData
     {
-        [JsonPropertyName("room_id")]
-        public int RoomId { get; set; }
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
 
-        [JsonPropertyName("changes")]
-        public JsonElement Changes { get; set; }
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("owner_user_id")]
+        public int? OwnerUserId { get; set; }
+
+        [JsonPropertyName("max_members")]
+        public int MaxMembers { get; set; }
+
+        [JsonPropertyName("is_private")]
+        public bool IsPrivate { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("member_count")]
+        public int MemberCount { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public DateTime UpdatedAt { get; set; }
     }
 
     public class RoomDeletedEventData
     {
-        [JsonPropertyName("room_id")]
-        public int RoomId { get; set; }
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
     }
 
     public class RoomMemberJoinedEventData

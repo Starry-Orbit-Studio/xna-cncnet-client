@@ -49,6 +49,9 @@ namespace DTAClient.Online.Backend
         public event EventHandler<UserEventArgs>? UserGameIndexUpdated;
         public event EventHandler<UserNameIndexEventArgs>? UserRemoved;
         public event EventHandler? MultipleUsersAdded;
+        public event EventHandler<RoomCreatedEventArgs>? RoomCreated;
+        public event EventHandler<RoomUpdatedEventArgs>? RoomUpdated;
+        public event EventHandler<RoomDeletedEventArgs>? RoomDeleted;
 
         public Channel? MainChannel
         {
@@ -91,6 +94,9 @@ namespace DTAClient.Online.Backend
             _sessionManager.RoomMemberJoined += OnRoomMemberJoined;
             _sessionManager.RoomMemberLeft += OnRoomMemberLeft;
             _sessionManager.MessageReceived += OnMessageReceived;
+            _sessionManager.RoomCreated += OnRoomCreated;
+            _sessionManager.RoomUpdated += OnRoomUpdated;
+            _sessionManager.RoomDeleted += OnRoomDeleted;
 
             _apiClient.DebugLog += OnDebugLog;
             _wsClient.DebugLog += OnDebugLog;
@@ -484,6 +490,36 @@ namespace DTAClient.Online.Backend
                     var color = new IRCColor(e.Data.SenderNickname, false, Color.White, 0);
                     channel.AddMessage(new ChatMessage(e.Data.SenderNickname, color.XnaColor, DateTime.Now, e.Data.Content));
                 }
+            });
+        }
+
+        private void OnRoomCreated(object? sender, RoomCreatedEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Room created: {e.Data.Name} (ID: {e.Data.Id})");
+            
+            _windowManager.AddCallback(() =>
+            {
+                RoomCreated?.Invoke(this, e);
+            });
+        }
+
+        private void OnRoomUpdated(object? sender, RoomUpdatedEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Room updated: ID {e.Data.Id}");
+            
+            _windowManager.AddCallback(() =>
+            {
+                RoomUpdated?.Invoke(this, e);
+            });
+        }
+
+        private void OnRoomDeleted(object? sender, RoomDeletedEventArgs e)
+        {
+            Logger.Log($"[BackendManager] Room deleted: ID {e.Data.Id}");
+            
+            _windowManager.AddCallback(() =>
+            {
+                RoomDeleted?.Invoke(this, e);
             });
         }
     }

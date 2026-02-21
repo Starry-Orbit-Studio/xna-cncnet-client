@@ -78,6 +78,16 @@ namespace DTAClient.Online.Backend
             return spaces.Select(CreateChannelFromSpace).ToList();
         }
 
+        public async Task<List<SpaceResponse>> GetRoomSpacesAsync()
+        {
+            return await _apiClient.GetSpacesAsync("room");
+        }
+
+        public async Task<List<SpaceMemberResponse>> GetSpaceMembersAsync(int spaceId)
+        {
+            return await _apiClient.GetSpaceMembersAsync(spaceId);
+        }
+
         public async Task<BackendChannel?> GetChannelAsync(int spaceId)
         {
             if (_channels.TryGetValue(spaceId, out var channel))
