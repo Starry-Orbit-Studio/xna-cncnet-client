@@ -20,6 +20,10 @@ namespace DTAClient.DXGUI.Generic
         private readonly ExternalAccountService _accountService;
         private OAuthService _oauthService;
 
+        public event EventHandler Connect;
+        public event EventHandler Cancelled;
+        public event EventHandler LoginRequested;
+
         private XNAClientButton btnGitHubLogin;
         private XNAClientButton btnCancel;
         private XNALabel lblStatus;
@@ -105,6 +109,8 @@ namespace DTAClient.DXGUI.Generic
             btnCancel.AllowClick = false;
             lblStatus.Text = "Opening browser for GitHub authentication...".L10N("Client:Main:OpeningBrowser");
 
+            LoginRequested?.Invoke(this, EventArgs.Empty);
+
             try
             {
                 await _oauthService.StartAuthenticationAsync();
@@ -138,6 +144,7 @@ namespace DTAClient.DXGUI.Generic
                     await Task.Delay(500);
                     _oauthService?.Stop();
                     Disable();
+                    Connect?.Invoke(this, EventArgs.Empty);
                 }
                 else
                 {
@@ -158,6 +165,7 @@ namespace DTAClient.DXGUI.Generic
         {
             _oauthService?.Stop();
             Disable();
+            Cancelled?.Invoke(this, EventArgs.Empty);
         }
 
         public void Open()

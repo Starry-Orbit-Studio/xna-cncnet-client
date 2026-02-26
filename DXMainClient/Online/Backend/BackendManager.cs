@@ -31,6 +31,7 @@ namespace DTAClient.Online.Backend
         private readonly List<Channel> _channels = new();
         private readonly List<IRCUser> _userList = new();
         private readonly List<Models.OnlineUserResponse> _pendingOnlineUsers = new();
+        private bool _isAttemptingConnection;
 
         public event EventHandler<ServerMessageEventArgs>? WelcomeMessageReceived;
         public event EventHandler<UserAwayEventArgs>? AwayMessageReceived;
@@ -65,7 +66,7 @@ namespace DTAClient.Online.Backend
         }
 
         public bool IsConnected => _sessionManager.IsConnected;
-        public bool IsAttemptingConnection => false;
+        public bool IsAttemptingConnection => _isAttemptingConnection;
         
         public BackendSpaceManager SpaceManager => _spaceManager;
 
@@ -120,21 +121,58 @@ namespace DTAClient.Online.Backend
 
         public async Task ConnectAsync()
         {
+            Logger.Log($"[BackendManager] === ConnectAsync called ===");
+            Logger.Log($"[BackendManager] ConnectAsync: _sessionManager is null = {_sessionManager == null}");
+            Logger.Log($"[BackendManager] ConnectAsync: _playerIdentityService.IsLoggedIn() = {_playerIdentityService?.IsLoggedIn()}");
+            Logger.Log($"[BackendManager] ConnectAsync: IsConnected = {IsConnected}, IsAttemptingConnection = {IsAttemptingConnection}");
+            
+            // 如果已经连接或正在尝试连接，直接返回
+            if (IsConnected || _isAttemptingConnection)
+            {
+                Logger.Log($"[BackendManager] ConnectAsync: Already connected or attempting connection (IsConnected: {IsConnected}, _isAttemptingConnection: {_isAttemptingConnection}), skipping");
+                return;
+            }
+            
+            _isAttemptingConnection = true;
+            
             try
             {
+                Logger.Log("[BackendManager] ConnectAsync: Initializing session manager...");
                 await _sessionManager.InitializeAsync();
+                Logger.Log("[BackendManager] ConnectAsync: Connecting to lobby...");
                 await _sessionManager.ConnectToLobbyAsync();
-                Connected?.Invoke(this, EventArgs.Empty);
+                Logger.Log("[BackendManager] ConnectAsync: Successfully connected to lobby, invoking Connected event");
+                
+                _windowManager.AddCallback(() =>
+                {
+                    Logger.Log("[BackendManager] ConnectAsync: UI thread callback executing");
+                    Connected?.Invoke(this, EventArgs.Empty);
+                    Logger.Log("[BackendManager] ConnectAsync: Connected event invoked");
+                });
             }
             catch (Exception ex)
             {
-                Logger.Log($"[BackendManager] Connect failed: {ex.Message}");
-                ConnectAttemptFailed?.Invoke(this, EventArgs.Empty);
+                _isAttemptingConnection = false;
+                Logger.Log($"[BackendManager] ConnectAsync failed: {ex.Message}");
+                Logger.Log($"[BackendManager] ConnectAsync stack trace: {ex.StackTrace}");
+                _windowManager.AddCallback(() =>
+                {
+                    Logger.Log("[BackendManager] ConnectAsync: Invoking ConnectAttemptFailed event");
+                    ConnectAttemptFailed?.Invoke(this, EventArgs.Empty);
+                });
+                throw;
+            }
+            finally
+            {
+                // 注意：只有在连接失败时才在catch块中重置_isAttemptingConnection
+                // 连接成功时，IsConnected应该为true，_isAttemptingConnection可以保持为true直到连接完全建立
             }
         }
 
         public void Disconnect()
         {
+            Logger.Log($"[BackendManager] Disconnect called, resetting _isAttemptingConnection");
+            _isAttemptingConnection = false;
             _ = _sessionManager.EndSessionAsync();
             Disconnected?.Invoke(this, EventArgs.Empty);
         }
@@ -213,9 +251,12 @@ namespace DTAClient.Online.Backend
                 }
                 
                 _pendingOnlineUsers.Clear();
-                Logger.Log($"[BackendManager] Invoking MultipleUsersAdded from SetMainChannel");
-                MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
             }
+            
+            // Always invoke MultipleUsersAdded when main channel is set
+            // This allows UI components to enable themselves
+            Logger.Log($"[BackendManager] Invoking MultipleUsersAdded from SetMainChannel");
+            MultipleUsersAdded?.Invoke(this, EventArgs.Empty);
         }
 
         public void LeaveFromChannel(Channel channel)
@@ -261,11 +302,16 @@ namespace DTAClient.Online.Backend
 
         private void OnSessionCreated(object? sender, SessionEventArgs e)
         {
-            WelcomeMessageReceived?.Invoke(this, new ServerMessageEventArgs("Connected to backend"));
+            _windowManager.AddCallback(() =>
+            {
+                WelcomeMessageReceived?.Invoke(this, new ServerMessageEventArgs("Connected to backend"));
+            });
         }
 
         private void OnSessionEnded(object? sender, EventArgs e)
         {
+            Logger.Log($"[BackendManager] OnSessionEnded: Resetting _isAttemptingConnection to false");
+            _isAttemptingConnection = false;
             Disconnected?.Invoke(this, EventArgs.Empty);
         }
 
@@ -273,42 +319,48 @@ namespace DTAClient.Online.Backend
         {
             Logger.Log($"[BackendManager] WebSocket ready, lobby info: {e.Data.LobbyInfo.Name} (ID: {e.Data.LobbyInfo.Id}, Channel: {e.Data.LobbyInfo.Channel})");
 
-            var lobbyInfo = e.Data.LobbyInfo;
-
-            var channel = new BackendChannel(
-                lobbyInfo.Name,
-                lobbyInfo.Channel,
-                false,
-                true,
-                null,
-                _apiClient,
-                _sessionManager,
-                _wsClient,
-                _playerIdentityService
-            );
-
-            var spaceResponse = new Models.SpaceResponse
+            _windowManager.AddCallback(() =>
             {
-                Id = lobbyInfo.Id,
-                Name = lobbyInfo.Name,
-                Type = "lobby",
-                MaxMembers = 100,
-                IsPrivate = false,
-                Status = "active",
-                MemberCount = 0,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
-            };
+                Logger.Log($"[BackendManager] OnReady UI callback: Resetting _isAttemptingConnection to false");
+                _isAttemptingConnection = false;
+                
+                var lobbyInfo = e.Data.LobbyInfo;
 
-            channel.UpdateFromSpace(spaceResponse);
-            AddChannel(channel);
+                var channel = new BackendChannel(
+                    lobbyInfo.Name,
+                    lobbyInfo.Channel,
+                    false,
+                    true,
+                    null,
+                    _apiClient,
+                    _sessionManager,
+                    _wsClient,
+                    _playerIdentityService
+                );
 
-            if (_mainChannel == null)
-            {
-                SetMainChannel(channel);
-            }
+                var spaceResponse = new Models.SpaceResponse
+                {
+                    Id = lobbyInfo.Id,
+                    Name = lobbyInfo.Name,
+                    Type = "lobby",
+                    MaxMembers = 100,
+                    IsPrivate = false,
+                    Status = "active",
+                    MemberCount = 0,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
 
-            _ = channel.LoadMembersAsync();
+                channel.UpdateFromSpace(spaceResponse);
+                AddChannel(channel);
+
+                if (_mainChannel == null)
+                {
+                    SetMainChannel(channel);
+                }
+
+                _ = channel.LoadMembersAsync();
+            });
         }
 
         private void OnOnlineUsersReceived(object? sender, OnlineUsersEventArgs e)

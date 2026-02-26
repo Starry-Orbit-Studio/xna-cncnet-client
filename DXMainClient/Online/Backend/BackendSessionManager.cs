@@ -69,6 +69,9 @@ namespace DTAClient.Online.Backend
 
         public async Task ConnectToLobbyAsync(string? guestName = null)
         {
+            Logger.Log($"[BackendSessionManager] === ConnectToLobbyAsync called ===");
+            Logger.Log($"[BackendSessionManager] ConnectToLobbyAsync: _playerIdentityService is null = {_playerIdentityService == null}");
+            
             try
             {
                 if (_playerIdentityService.IsLoggedIn())
@@ -84,20 +87,29 @@ namespace DTAClient.Online.Backend
             }
             catch (Exception ex)
             {
-                Logger.Log($"[BackendSessionManager] Failed to connect to lobby: {ex.Message}");
+                Logger.Log($"[BackendSessionManager] ConnectToLobbyAsync failed: {ex.Message}");
+                Logger.Log($"[BackendSessionManager] ConnectToLobbyAsync stack trace: {ex.StackTrace}");
                 throw;
             }
         }
 
         private async Task ConnectWithOAuthAsync()
         {
+            Logger.Log($"[BackendSessionManager] === ConnectWithOAuthAsync called ===");
+            Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync: _playerIdentityService is null = {_playerIdentityService == null}");
+            Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync: _playerIdentityService.IsLoggedIn() = {_playerIdentityService?.IsLoggedIn()}");
+            
             string accessToken = _playerIdentityService.GetAccessToken();
+            Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync: accessToken is null or empty = {string.IsNullOrEmpty(accessToken)}");
+            Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync: accessToken length = {accessToken?.Length ?? 0}");
+            
             _apiClient.SetAccessToken(accessToken);
 
             try
             {
                 Logger.Log("[BackendSessionManager] Requesting WebSocket ticket with OAuth token");
                 var ticketResponse = await _apiClient.ConnectAsUserAsync();
+                Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync: Successfully got ticket, session ID = {ticketResponse.SessionId}");
                 await CompleteConnection(ticketResponse);
             }
             catch (BackendApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
@@ -121,6 +133,12 @@ namespace DTAClient.Online.Backend
                     throw new InvalidOperationException("OAuth token expired and refresh failed. Please login again.");
                 }
             }
+            catch (Exception ex)
+            {
+                Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync failed: {ex.Message}");
+                Logger.Log($"[BackendSessionManager] ConnectWithOAuthAsync stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         private async Task ConnectAsGuestAsync(string? guestName)
@@ -134,9 +152,17 @@ namespace DTAClient.Online.Backend
 
         private async Task CompleteConnection(ConnectTicketResponse ticketResponse)
         {
+            Logger.Log($"[BackendSessionManager] === CompleteConnection called ===");
+            Logger.Log($"[BackendSessionManager] CompleteConnection: ticketResponse.SessionId = {ticketResponse.SessionId}");
+            Logger.Log($"[BackendSessionManager] CompleteConnection: ticketResponse.WsTicket length = {ticketResponse.WsTicket?.Length ?? 0}");
+            
             _currentSession = new SessionResponse { Id = ticketResponse.SessionId };
+            Logger.Log("[BackendSessionManager] CompleteConnection: Invoking SessionCreated event");
             SessionCreated?.Invoke(this, new SessionEventArgs(_currentSession));
+            
+            Logger.Log("[BackendSessionManager] CompleteConnection: Connecting WebSocket...");
             await ConnectWebSocketAsync(ticketResponse.WsTicket);
+            Logger.Log("[BackendSessionManager] CompleteConnection: WebSocket connection initiated");
         }
 
         public async Task CreateGuestSessionAsync(string? guestName = null)

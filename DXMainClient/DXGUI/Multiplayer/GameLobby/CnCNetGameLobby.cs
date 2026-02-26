@@ -7,7 +7,7 @@ using DTAClient.DXGUI.Generic;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby.CommandHandlers;
 using DTAClient.Online;
-using DTAClient.Online.Backend;
+
 using DTAClient.Online.EventArguments;
 using Microsoft.Xna.Framework;
 using Rampastring.Tools;
@@ -53,17 +53,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             DiscordHandler discordHandler,
             PrivateMessagingWindow pmWindow,
             Random random,
-            Online.Backend.BackendManager? backendManager = null,
             PlayerIdentityService? playerIdentityService = null
         ) : base(windowManager, "MultiplayerGameLobby", topBar, mapLoader, discordHandler, pmWindow, random)
         {
             this.connectionManager = connectionManager;
-            this._backendManager = backendManager;
+
             this._playerIdentityService = playerIdentityService ?? throw new ArgumentNullException(nameof(playerIdentityService));
 
-            activeManager = ClientConfiguration.Instance.UseBackendInsteadOfIRC && backendManager != null
-                ? backendManager
-                : connectionManager;
+            activeManager = connectionManager;
 
             localGame = ClientConfiguration.Instance.LocalGame;
             this.tunnelHandler = tunnelHandler;
@@ -132,7 +129,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
          private Channel channel;
          private CnCNetManager connectionManager;
-         private readonly Online.Backend.BackendManager? _backendManager;
+
          private IConnectionManager activeManager;
          private string localGame;
 

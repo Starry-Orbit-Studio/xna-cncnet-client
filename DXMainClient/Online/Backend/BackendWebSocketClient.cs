@@ -103,11 +103,12 @@ namespace DTAClient.Online.Backend
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                         string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
                         var wsMessage = JsonSerializer.Deserialize<WebSocketMessage>(message);
 
-                        if (wsMessage != null)
+                         if (wsMessage != null)
                         {
+                            Logger.Log($"[BackendWebSocketClient] Received event: {wsMessage.EventType}");
                             if (ClientConfiguration.Instance.EnableBackendDebugLog && wsMessage.EventType != "pong")
                             {
                                 Logger.Log($"[Backend WebSocket] Event: {wsMessage.EventType}");
@@ -119,6 +120,10 @@ namespace DTAClient.Online.Backend
 
                             MessageReceived?.Invoke(this, new WebSocketMessageEventArgs(wsMessage));
                             DispatchEvent(wsMessage);
+                        }
+                        else
+                        {
+                            Logger.Log($"[BackendWebSocketClient] Failed to deserialize WebSocket message: {message.Substring(0, Math.Min(message.Length, 200))}");
                         }
                     }
                 }
@@ -132,6 +137,7 @@ namespace DTAClient.Online.Backend
 
         private void DispatchEvent(WebSocketMessage message)
         {
+            Logger.Log($"[BackendWebSocketClient] DispatchEvent: EventType = {message.EventType}, Data.HasValue = {message.Data.HasValue}");
             switch (message.EventType)
             {
                 case "ready":

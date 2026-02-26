@@ -19,6 +19,7 @@ using DTAClient.DXGUI.Campaign;
 using DTAClient.DXGUI.Multiplayer;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
+using DTAClient.DXGUI.Multiplayer.SOS;
 using DTAClient.Online;
 using DTAClient.Online.Backend;
 using ClientGUI.Settings;
@@ -298,6 +299,7 @@ namespace DTAClient.DXGUI
                             .AddSingletonXnaControl<CnCNetGameLobby>()
                             .AddSingletonXnaControl<CnCNetGameLoadingLobby>()
                             .AddSingletonXnaControl<CnCNetLobby>()
+                            .AddSingletonXnaControl<SOSLobby>()
                             .AddSingletonXnaControl<GameInProgressWindow>()
                             .AddSingletonXnaControl<SkirmishLobby>()
                             .AddSingletonXnaControl<MainMenu>()

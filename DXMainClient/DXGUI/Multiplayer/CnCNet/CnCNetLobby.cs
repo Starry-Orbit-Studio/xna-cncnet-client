@@ -7,9 +7,7 @@ using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Generic;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
 using DTAClient.Online;
-using DTAClient.Online.Backend;
-using DTAClient.Online.Backend.Models;
-using DTAClient.Online.Backend.EventArguments;
+
 using DTAClient.Online.EventArguments;
 using DTAClient.DXGUI.Multiplayer.GameLobby.CommandHandlers;
 using Microsoft.Xna.Framework.Graphics;
@@ -46,11 +44,11 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         OptionsWindow optionsWindow, MapLoader mapLoader, Random random,
         ExternalAccountService externalAccountService,
         LoginWindow loginWindow,
-        Online.Backend.BackendManager? backendManager,
         PlayerIdentityService playerIdentityService)
             : base(windowManager)
         {
             this.connectionManager = connectionManager;
+            activeManager = connectionManager;
             this.gameLobby = gameLobby;
             this.gameLoadingLobby = gameLoadingLobby;
             this.tunnelHandler = tunnelHandler;
@@ -63,7 +61,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             this.random = random;
             this.externalAccountService = externalAccountService;
             this.accountLoginWindow = loginWindow;
-            this._backendManager = backendManager;
+
             this._playerIdentityService = playerIdentityService;
 
             ctcpCommandHandlers = new CommandHandlerBase[]
@@ -78,7 +76,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private MapLoader mapLoader;
 
         private CnCNetManager connectionManager;
-        private readonly Online.Backend.BackendManager? _backendManager;
+
         private IConnectionManager activeManager;
         private CnCNetUserData cncnetUserData;
         private readonly OptionsWindow optionsWindow;
@@ -152,8 +150,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private HostedCnCNetGame gameOfLastJoinAttempt;
 
         private CancellationTokenSource gameCheckCancellation;
-        private Timer? _backendGameRefreshTimer;
-        private bool _isRefreshingBackendGames;
+
 
         private CommandHandlerBase[] ctcpCommandHandlers;
 
@@ -181,16 +178,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             invitationIndex = new InvitationIndex();
 
-            if (ClientConfiguration.Instance.UseBackendInsteadOfIRC && _backendManager != null)
-            {
-                activeManager = _backendManager;
-                Logger.Log("Using Backend Manager instead of IRC");
-            }
-            else
-            {
-                activeManager = connectionManager;
-                Logger.Log("Using IRC Connection Manager");
-            }
+            activeManager = connectionManager;
+            Logger.Log("Using IRC Connection Manager");
 
             ClientRectangle = new Rectangle(0, 0, WindowManager.RenderResolutionX - 64,
                 WindowManager.RenderResolutionY - 64);
@@ -652,17 +641,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             GameProcessLogic.GameProcessStarted += SharedUILogic_GameProcessStarted;
             GameProcessLogic.GameProcessExited += SharedUILogic_GameProcessExited;
 
-            // Initialize backend game refresh timer if using backend
-            if (_backendManager != null)
-            {
-                // Subscribe to room events for real-time updates
-                _backendManager.RoomCreated += OnBackendRoomCreated;
-                _backendManager.RoomUpdated += OnBackendRoomUpdated;
-                _backendManager.RoomDeleted += OnBackendRoomDeleted;
-                
-                // Use longer interval for fallback refresh (60 seconds instead of 10)
-                _backendGameRefreshTimer = new Timer(BackendGameRefreshTimerCallback, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
-            }
+
         }
 
         /// <summary>
@@ -1106,44 +1085,19 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 isCustomPassword = false;
             }
 
-            if (_backendManager != null)
-            {
-                try
-                {
-                    var backendChannel = await _backendManager.SpaceManager.CreateRoomAsync(e.GameRoomName, e.MaxPlayers, !isCustomPassword);
-                    activeManager.AddChannel(backendChannel);
-                    gameLobby.SetUp(backendChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
-                    backendChannel.UserAdded += GameChannel_UserAdded;
-                    backendChannel.JoinBackend();
-                    
-                    activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
-                       string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
-                    
-                    gameCreationPanel.Hide();
-                    
-                    pmWindow.SetInviteChannelInfo(backendChannel.ChannelName, e.GameRoomName, string.IsNullOrEmpty(e.Password) ? string.Empty : e.Password);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log($"[CnCNetLobby] 创建房间失败: {ex.Message}");
-                    activeManager.MainChannel.AddMessage(new ChatMessage(Color.Red, $"创建房间失败: {ex.Message}"));
-                }
-            }
-            else
-            {
-                Channel gameChannel = activeManager.CreateChannel(e.GameRoomName, channelName, false, true, password);
-                activeManager.AddChannel(gameChannel);
-                gameLobby.SetUp(gameChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
-                gameChannel.UserAdded += GameChannel_UserAdded;
-                activeManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + password,
-                    QueuedMessageType.INSTANT_MESSAGE, 0));
-                activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
-                   string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
 
-                gameCreationPanel.Hide();
+            Channel gameChannel = activeManager.CreateChannel(e.GameRoomName, channelName, false, true, password);
+            activeManager.AddChannel(gameChannel);
+            gameLobby.SetUp(gameChannel, true, e.MaxPlayers, e.Tunnel, ProgramConstants.PLAYERNAME, isCustomPassword, e.SkillLevel);
+            gameChannel.UserAdded += GameChannel_UserAdded;
+            activeManager.SendCustomMessage(new QueuedMessage("JOIN " + channelName + " " + password,
+                QueuedMessageType.INSTANT_MESSAGE, 0));
+            activeManager.MainChannel.AddMessage(new ChatMessage(Color.White,
+               string.Format("Creating a game named {0} ...".L10N("Client:Main:CreateGameNamed"), e.GameRoomName)));
 
-                pmWindow.SetInviteChannelInfo(channelName, e.GameRoomName, string.IsNullOrEmpty(e.Password) ? string.Empty : e.Password);
-            }
+            gameCreationPanel.Hide();
+
+            pmWindow.SetInviteChannelInfo(channelName, e.GameRoomName, string.IsNullOrEmpty(e.Password) ? string.Empty : e.Password);
         }
 
         private void Gcw_LoadedGameCreated(object sender, GameCreationEventArgs e)
@@ -1324,11 +1278,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             // Enable game search
             tbGameSearch.Enabled = true;
             
-            // Initial load of backend games if using backend
-            if (_backendManager != null)
-            {
-                _ = RefreshBackendGamesAsync();
-            }
+
         }
 
         private void ConnectionManager_PrivateCTCPReceived(object sender, PrivateCTCPEventArgs e)
@@ -1904,207 +1854,21 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             return lbGameList.HostedGames.Select(g => (HostedCnCNetGame)g).FirstOrDefault(g => g.Players.Contains(user.Name));
         }
 
-        private async Task RefreshBackendGamesAsync()
-        {
-            if (_isRefreshingBackendGames)
-                return;
-            
-            try
-            {
-                _isRefreshingBackendGames = true;
-                
-                if (_backendManager == null)
-                    return;
 
-                var spaces = await _backendManager.SpaceManager.GetRoomSpacesAsync();
-                
-                // Capture spaces for UI thread callback
-                var capturedSpaces = spaces;
-                
-                WindowManager.AddCallback(new Action(() =>
-                {
-                    // Clear current backend games
-                    var currentGames = lbGameList.HostedGames.ToList();
-                    var backendGames = currentGames.Where(g => g is HostedCnCNetGame hg && hg.ChannelName?.StartsWith("#") == true).ToList();
-                    
-                    foreach (var game in backendGames)
-                    {
-                        lbGameList.HostedGames.Remove(game);
-                    }
 
-                    // Add new games
-                    foreach (var space in capturedSpaces)
-                    {
-                        // Convert SpaceResponse to HostedCnCNetGame
-                        var hostedGame = new HostedCnCNetGame
-                        {
-                            ChannelName = $"#{space.Id}",
-                            RoomName = space.Name,
-                            MaxPlayers = space.MaxMembers,
-                            Passworded = space.IsPrivate,
-                            Tunneled = true, // Backend games are tunneled
-                            Players = Array.Empty<string>(), // TODO: Get actual players from space members
-                            HostName = space.OwnerUserId.HasValue ? $"User{space.OwnerUserId}" : "Host",
-                            Map = "Unknown",
-                            GameMode = "Standard",
-                            MapHash = string.Empty,
-                            Revision = ProgramConstants.CNCNET_PROTOCOL_REVISION,
-                            GameVersion = ProgramConstants.GAME_VERSION,
-                            Game = localGame,
-                            LastRefreshTime = DateTime.Now,
-                            Locked = space.Status != "waiting",
-                            Incompatible = false,
-                            IsLoadedGame = false,
-                            IsLadder = false,
-                            SkillLevel = 0
-                        };
 
-                        lbGameList.HostedGames.Add(hostedGame);
-                    }
 
-                    SortAndRefreshHostedGames();
-                }), null);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log($"[CnCNetLobby] Failed to refresh backend games: {ex.Message}");
-            }
-            finally
-            {
-                _isRefreshingBackendGames = false;
-            }
-        }
 
-        private void OnBackendRoomCreated(object? sender, RoomCreatedEventArgs e)
-        {
-            Logger.Log($"[CnCNetLobby] Room created event: {e.Data.Name} (ID: {e.Data.Id})");
-            
-            // Convert event data to SpaceResponse
-            var space = new SpaceResponse
-            {
-                Id = e.Data.Id,
-                Name = e.Data.Name,
-                Type = e.Data.Type ?? "room",
-                MaxMembers = e.Data.MaxMembers,
-                IsPrivate = e.Data.IsPrivate,
-                Status = e.Data.Status,
-                OwnerUserId = e.Data.OwnerUserId,
-                MemberCount = e.Data.MemberCount,
-                CreatedAt = e.Data.CreatedAt,
-                UpdatedAt = e.Data.UpdatedAt
-            };
-            
-            WindowManager.AddCallback(new Action(() =>
-            {
-                AddBackendGame(space);
-            }), null);
-        }
 
-        private void OnBackendRoomUpdated(object? sender, RoomUpdatedEventArgs e)
-        {
-            Logger.Log($"[CnCNetLobby] Room updated event: ID {e.Data.Id} ({e.Data.Name})");
-            
-            // For updates, we need to fetch the complete space info
-            // For now, trigger a full refresh or update with partial data
-            WindowManager.AddCallback(new Action(() =>
-            {
-                // Mark for refresh on next timer tick
-                _ = RefreshBackendGamesAsync();
-            }), null);
-        }
 
-        private void OnBackendRoomDeleted(object? sender, RoomDeletedEventArgs e)
-        {
-            Logger.Log($"[CnCNetLobby] Room deleted event: ID {e.Data.Id}");
-            
-            WindowManager.AddCallback(new Action(() =>
-            {
-                RemoveBackendGame(e.Data.Id);
-            }), null);
-        }
 
-        private void AddBackendGame(SpaceResponse space)
-        {
-            // Check if game already exists
-            var existingGame = lbGameList.HostedGames.FirstOrDefault(g => 
-                g is HostedCnCNetGame hg && hg.ChannelName == $"#{space.Id}");
-            
-            if (existingGame != null)
-            {
-                UpdateBackendGame(space);
-                return;
-            }
-            
-            // Convert SpaceResponse to HostedCnCNetGame
-            var hostedGame = new HostedCnCNetGame
-            {
-                ChannelName = $"#{space.Id}",
-                RoomName = space.Name,
-                MaxPlayers = space.MaxMembers,
-                Passworded = space.IsPrivate,
-                Tunneled = true, // Backend games are tunneled
-                Players = Array.Empty<string>(), // TODO: Get actual players from space members
-                HostName = space.OwnerUserId.HasValue ? $"User{space.OwnerUserId}" : "Host",
-                Map = "Unknown",
-                GameMode = "Standard",
-                MapHash = string.Empty,
-                Revision = ProgramConstants.CNCNET_PROTOCOL_REVISION,
-                GameVersion = ProgramConstants.GAME_VERSION,
-                Game = localGame,
-                LastRefreshTime = DateTime.Now,
-                Locked = space.Status != "waiting",
-                Incompatible = false,
-                IsLoadedGame = false,
-                IsLadder = false,
-                SkillLevel = 0
-            };
-            
-            lbGameList.HostedGames.Add(hostedGame);
-            SortAndRefreshHostedGames();
-            
-            Logger.Log($"[CnCNetLobby] Added backend game: {space.Name} (ID: {space.Id})");
-        }
 
-        private void UpdateBackendGame(SpaceResponse space)
-        {
-            var game = lbGameList.HostedGames.FirstOrDefault(g => 
-                g is HostedCnCNetGame hg && hg.ChannelName == $"#{space.Id}") as HostedCnCNetGame;
-            
-            if (game == null)
-                return;
-            
-            // Update game properties
-            game.RoomName = space.Name;
-            game.MaxPlayers = space.MaxMembers;
-            game.Passworded = space.IsPrivate;
-            game.Locked = space.Status != "waiting";
-            game.LastRefreshTime = DateTime.Now;
-            
-            SortAndRefreshHostedGames();
-            
-            Logger.Log($"[CnCNetLobby] Updated backend game: {space.Name} (ID: {space.Id})");
-        }
 
-        private void RemoveBackendGame(int spaceId)
-        {
-            var game = lbGameList.HostedGames.FirstOrDefault(g => 
-                g is HostedCnCNetGame hg && hg.ChannelName == $"#{spaceId}");
-            
-            if (game != null)
-            {
-                lbGameList.HostedGames.Remove(game);
-                SortAndRefreshHostedGames();
-                Logger.Log($"[CnCNetLobby] Removed backend game: ID {spaceId}");
-            }
-        }
 
-        private void BackendGameRefreshTimerCallback(object state)
-        {
-            if (_backendManager != null && _backendManager.IsConnected)
-            {
-                _ = RefreshBackendGamesAsync();
-            }
-        }
+
+
+
+
 
         /// <summary>
         /// Joins a specified user's game depending on whether or not
@@ -2134,17 +1898,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             if (disposing)
             {
-                _backendGameRefreshTimer?.Dispose();
-                _backendGameRefreshTimer = null;
+
                 gameCheckCancellation?.Dispose();
                 
-                // Unsubscribe from backend manager events
-                if (_backendManager != null)
-                {
-                    _backendManager.RoomCreated -= OnBackendRoomCreated;
-                    _backendManager.RoomUpdated -= OnBackendRoomUpdated;
-                    _backendManager.RoomDeleted -= OnBackendRoomDeleted;
-                }
+
             }
             base.Dispose(disposing);
         }

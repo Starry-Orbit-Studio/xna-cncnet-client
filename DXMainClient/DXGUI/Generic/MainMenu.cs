@@ -6,6 +6,7 @@ using DTAClient.Domain.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer;
 using DTAClient.DXGUI.Multiplayer.CnCNet;
 using DTAClient.DXGUI.Multiplayer.GameLobby;
+using DTAClient.DXGUI.Multiplayer.SOS;
 using DTAClient.Online;
 using ClientCore.Extensions;
 using ClientCore.ExternalAccount;
@@ -48,6 +49,7 @@ namespace DTAClient.DXGUI.Generic
             TopBar topBar,
             OptionsWindow optionsWindow,
             CnCNetLobby cncnetLobby,
+            SOSLobby sosLobby,
             CnCNetManager connectionManager,
             DiscordHandler discordHandler,
             CnCNetGameLoadingLobby cnCNetGameLoadingLobby,
@@ -74,6 +76,7 @@ namespace DTAClient.DXGUI.Generic
             this.connectionManager = connectionManager;
             this.optionsWindow = optionsWindow;
             this.cncnetLobby = cncnetLobby;
+            this.sosLobby = sosLobby;
             this.discordHandler = discordHandler;
             this.skirmishLobby = skirmishLobby;
             this.cnCNetGameLoadingLobby = cnCNetGameLoadingLobby;
@@ -103,6 +106,7 @@ namespace DTAClient.DXGUI.Generic
         private XNALinkLabel lblVersion;
 
         private CnCNetLobby cncnetLobby;
+        private SOSLobby sosLobby;
 
         private SkirmishLobby skirmishLobby;
 
@@ -167,6 +171,7 @@ namespace DTAClient.DXGUI.Generic
         private XNAClientButton btnLoadGame;
         private XNAClientButton btnSkirmish;
         private XNAClientButton btnCnCNet;
+        private XNAClientButton btnSOS;
         private XNAClientButton btnLan;
         private XNAClientButton btnOptions;
         private XNAClientButton btnMapEditor;
@@ -216,6 +221,13 @@ namespace DTAClient.DXGUI.Generic
             btnCnCNet.HoverTexture = AssetLoader.LoadTexture("MainMenu/cncnet_c.png");
             btnCnCNet.HoverSoundEffect = new EnhancedSoundEffect("MainMenu/button.wav");
             btnCnCNet.LeftClick += BtnCnCNet_LeftClick;
+
+            btnSOS = new XNAClientButton(WindowManager);
+            btnSOS.Name = nameof(btnSOS);
+            btnSOS.IdleTexture = AssetLoader.LoadTexture("MainMenu/playonline.png");
+            btnSOS.HoverTexture = AssetLoader.LoadTexture("MainMenu/playonline_c.png");
+            btnSOS.HoverSoundEffect = new EnhancedSoundEffect("MainMenu/button.wav");
+            btnSOS.LeftClick += BtnSOS_LeftClick;
 
             btnLan = new XNAClientButton(WindowManager);
             btnLan.Name = nameof(btnLan);
@@ -288,6 +300,7 @@ namespace DTAClient.DXGUI.Generic
             AddChild(btnLoadGame);
             AddChild(btnSkirmish);
             AddChild(btnCnCNet);
+            AddChild(btnSOS);
             AddChild(btnLan);
             AddChild(btnOptions);
             AddChild(btnMapEditor);
@@ -600,6 +613,7 @@ namespace DTAClient.DXGUI.Generic
                 cnCNetGameLoadingLobby,
                 cnCNetGameLobby,
                 cncnetLobby,
+                sosLobby,
                 lanLobby,
                 campaignSelector,
                 gameLoadingWindow,
@@ -626,6 +640,7 @@ namespace DTAClient.DXGUI.Generic
                 cnCNetGameLoadingLobby,
                 cnCNetGameLobby,
                 cncnetLobby,
+                sosLobby,
                 lanLobby,
 
                 privateMessagingWindow,
@@ -951,7 +966,23 @@ namespace DTAClient.DXGUI.Generic
             topBar.SetLanMode(true);
         }
 
-        private void BtnCnCNet_LeftClick(object sender, EventArgs e) => topBar.SwitchToSecondary();
+        private void BtnCnCNet_LeftClick(object sender, EventArgs e)
+        {
+            // 切换到CnCNet大厅（IRC版本）
+            sosLobby.SwitchOff();
+            topBar.SetSecondarySwitch(cncnetLobby);
+            cncnetLobby.SwitchOn();
+            topBar.SwitchToSecondary();
+        }
+
+        private void BtnSOS_LeftClick(object sender, EventArgs e)
+        {
+            // 切换到SOS大厅（后端版本）
+            cncnetLobby.SwitchOff();
+            topBar.SetSecondarySwitch(sosLobby);
+            sosLobby.SwitchOn();
+            topBar.SwitchToSecondary();
+        }
 
         private void BtnSkirmish_LeftClick(object sender, EventArgs e)
         {
