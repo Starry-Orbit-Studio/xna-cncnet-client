@@ -25,6 +25,7 @@ namespace DTAClient.DXGUI.Generic
         public event EventHandler LoginRequested;
 
         private XNAClientButton btnGitHubLogin;
+        private XNAClientButton btnQQLogin;
         private XNAClientButton btnCancel;
         private XNALabel lblStatus;
         private XNALabel lblTitle;
@@ -40,7 +41,7 @@ namespace DTAClient.DXGUI.Generic
             BackgroundTexture = AssetLoader.LoadTexture("optionsbg.png");
 
             // 设置窗口尺寸 - 初始位置设为(0,0)，在Open()中居中
-            ClientRectangle = new Rectangle(0, 0, 400, 250);
+            ClientRectangle = new Rectangle(0, 0, 400, 280);
 
             lblTitle = new XNALabel(WindowManager);
             lblTitle.Name = nameof(lblTitle);
@@ -54,20 +55,28 @@ namespace DTAClient.DXGUI.Generic
             btnGitHubLogin = new XNAClientButton(WindowManager);
             btnGitHubLogin.Name = nameof(btnGitHubLogin);
             btnGitHubLogin.Text = "Login with GitHub".L10N("Client:Main:LoginWithGitHub");
-            btnGitHubLogin.ClientRectangle = new Rectangle(120, 90, UIDesignConstants.BUTTON_WIDTH_160, UIDesignConstants.BUTTON_HEIGHT);
+            btnGitHubLogin.ClientRectangle = new Rectangle(30, 90, UIDesignConstants.BUTTON_WIDTH_160, UIDesignConstants.BUTTON_HEIGHT);
             btnGitHubLogin.LeftClick += BtnGitHubLogin_LeftClick;
             AddChild(btnGitHubLogin);
+
+            // QQ登录按钮
+            btnQQLogin = new XNAClientButton(WindowManager);
+            btnQQLogin.Name = nameof(btnQQLogin);
+            btnQQLogin.Text = "Login with QQ".L10N("Client:Main:LoginWithQQ");
+            btnQQLogin.ClientRectangle = new Rectangle(210, 90, UIDesignConstants.BUTTON_WIDTH_160, UIDesignConstants.BUTTON_HEIGHT);
+            btnQQLogin.LeftClick += BtnQQLogin_LeftClick;
+            AddChild(btnQQLogin);
 
             btnCancel = new XNAClientButton(WindowManager);
             btnCancel.Name = nameof(btnCancel);
             btnCancel.Text = "Cancel".L10N("Client:Main:Cancel");
-            btnCancel.ClientRectangle = new Rectangle(120, 140, UIDesignConstants.BUTTON_WIDTH_160, UIDesignConstants.BUTTON_HEIGHT);
+            btnCancel.ClientRectangle = new Rectangle(120, 190, UIDesignConstants.BUTTON_WIDTH_160, UIDesignConstants.BUTTON_HEIGHT);
             btnCancel.LeftClick += BtnCancel_LeftClick;
             AddChild(btnCancel);
 
             lblStatus = new XNALabel(WindowManager);
             lblStatus.Name = nameof(lblStatus);
-            lblStatus.ClientRectangle = new Rectangle(50, 190, 300, 30);
+            lblStatus.ClientRectangle = new Rectangle(50, 230, 300, 30);
             lblStatus.Text = "";
             AddChild(lblStatus);
 
@@ -99,15 +108,41 @@ namespace DTAClient.DXGUI.Generic
 
         private async void BtnGitHubLogin_LeftClick(object sender, EventArgs e)
         {
-            if (_oauthService == null)
+            await StartOAuthAuthenticationAsync("github");
+        }
+
+        private async void BtnQQLogin_LeftClick(object sender, EventArgs e)
+        {
+            await StartOAuthAuthenticationAsync("qq");
+        }
+
+        private async Task StartOAuthAuthenticationAsync(string provider)
+        {
+            // 停止现有的OAuth服务
+            _oauthService?.Stop();
+            _oauthService = null;
+
+            var config = ClientConfiguration.Instance;
+            string apiBaseUrl = config.ExternalAccountApiBaseUrl;
+            
+            try
             {
-                lblStatus.Text = "OAuth service not available.".L10N("Client:Main:OAuthServiceNotAvailable");
+                _oauthService = new OAuthService(apiBaseUrl, provider);
+                _oauthService.AuthenticationCompleted += OAuthService_AuthenticationCompleted;
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Failed to initialize OAuth service: {ex.Message}".L10N("Client:Main:OAuthServiceInitFailed");
                 return;
             }
 
+            // 禁用按钮
             btnGitHubLogin.AllowClick = false;
+            btnQQLogin.AllowClick = false;
             btnCancel.AllowClick = false;
-            lblStatus.Text = "Opening browser for GitHub authentication...".L10N("Client:Main:OpeningBrowser");
+            
+            string providerDisplayName = provider == "github" ? "GitHub" : "QQ";
+            lblStatus.Text = $"Opening browser for {providerDisplayName} authentication...".L10N("Client:Main:OpeningBrowserForProvider");
 
             LoginRequested?.Invoke(this, EventArgs.Empty);
 
@@ -120,6 +155,7 @@ namespace DTAClient.DXGUI.Generic
             {
                 lblStatus.Text = $"Failed to start authentication: {ex.Message}".L10N("Client:Main:AuthStartFailed");
                 btnGitHubLogin.AllowClick = true;
+                btnQQLogin.AllowClick = true;
                 btnCancel.AllowClick = true;
             }
         }
@@ -150,6 +186,7 @@ namespace DTAClient.DXGUI.Generic
                 {
                     lblStatus.Text = $"Login failed: {_accountService.LastError}".L10N("Client:Main:LoginFailedWithError");
                     btnGitHubLogin.AllowClick = true;
+                    btnQQLogin.AllowClick = true;
                     btnCancel.AllowClick = true;
                 }
             }
@@ -157,6 +194,7 @@ namespace DTAClient.DXGUI.Generic
             {
                 lblStatus.Text = $"Authentication failed: {result.Error}".L10N("Client:Main:AuthFailed");
                 btnGitHubLogin.AllowClick = true;
+                btnQQLogin.AllowClick = true;
                 btnCancel.AllowClick = true;
             }
         }
@@ -172,6 +210,7 @@ namespace DTAClient.DXGUI.Generic
         {
             lblStatus.Text = "";
             btnGitHubLogin.AllowClick = true;
+            btnQQLogin.AllowClick = true;
             btnCancel.AllowClick = true;
             _accountService.LastError = null;
 

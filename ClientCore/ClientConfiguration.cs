@@ -36,7 +36,7 @@ namespace ClientCore
 
 #if NETFRAMEWORK
         private static readonly Random Random = new ();
-#else           
+#else
         private static readonly Random Random = Random.Shared;
 #endif
 
@@ -396,9 +396,9 @@ namespace ClientCore
         public bool InactiveHostKickEnabled => InactiveHostWarningMessageSeconds > 0 && InactiveHostKickSeconds > 0;
 
         public string SkillLevelOptions => clientDefinitionsIni.GetStringValue(SETTINGS, "SkillLevelOptions", "Any,Beginner,Intermediate,Pro");
-        
+
         public int DefaultSkillLevelIndex => clientDefinitionsIni.GetIntValue(SETTINGS, "DefaultSkillLevelIndex", 0);
-        
+
         public string GetGameExecutableName()
         {
             string[] exeNames = clientDefinitionsIni.GetStringListValue(SETTINGS, "GameExecutableNames", "Game.exe");
@@ -416,7 +416,7 @@ namespace ClientCore
         }
 
         public bool SaveSkirmishGameOptions => clientDefinitionsIni.GetBooleanValue(SETTINGS, "SaveSkirmishGameOptions", false);
-        
+
         public bool SaveCampaignGameOptions => clientDefinitionsIni.GetBooleanValue(SETTINGS, "SaveCampaignGameOptions", false);
 
         public bool CreateSavedGamesDirectory => clientDefinitionsIni.GetBooleanValue(SETTINGS, "CreateSavedGamesDirectory", false);
@@ -454,12 +454,12 @@ namespace ClientCore
         /// The main map file extension that is read by the client.
         /// </summary>
         public string MapFileExtension => clientDefinitionsIni.GetStringValue(SETTINGS, "MapFileExtension", "map");
-        
+
         /// <summary>
         /// This tells the client which supplemental map files are ok to copy over during "spawnmap.ini" file creation.
         /// IE, if "BIN" is listed, then the client will look for and copy the file "map_a.bin"
         /// when writing the spawnmap.ini file for map file "map_a.ini".
-        /// 
+        ///
         /// This configuration should be in the form "SupplementalMapFileExtensions=bin,mix"
         /// </summary>
         public IEnumerable<string> SupplementalMapFileExtensions
@@ -492,11 +492,11 @@ namespace ClientCore
         public bool DisableDiscordIntegration => networkDefinitionsIni.GetBooleanValue(SETTINGS, "DisableDiscordIntegration", false);
 
         #region External Account Configuration
-        
+
         /// <summary>
         /// 外部账户API基础地址 (来自[ExternalAccount]节的ApiBaseUrl)
         /// 如果不存在则使用[Settings]节的ExternalAccountBaseURL
-        /// 默认值: http://www.ra2modol.com:8000/api/v1
+        /// 默认值: https://api.es.ra2modol.com
         /// </summary>
         public string ExternalAccountApiBaseUrl
         {
@@ -505,46 +505,46 @@ namespace ClientCore
                 // 优先从[ExternalAccount]节读取 - 如果键存在则返回其值（即使为空）
                 if (networkDefinitionsIni.KeyExists("ExternalAccount", "ApiBaseUrl"))
                     return networkDefinitionsIni.GetStringValue("ExternalAccount", "ApiBaseUrl", string.Empty);
-                
+
                 // 回退到[Settings]节的旧配置 - 如果键存在则返回其值
                 if (networkDefinitionsIni.KeyExists(SETTINGS, "ExternalAccountBaseURL"))
                     return networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountBaseURL", string.Empty);
-                
+
                 // 如果两个键都不存在，则返回内置默认值
-                return "http://www.ra2modol.com:8000/api/v1";
+                return "https://api.es.ra2modol.com/api/v1";
             }
         }
-        
+
         /// <summary>
         /// GitHub OAuth Client ID (来自[GitHubOAuth]节的ClientId)
         /// 默认值: Ov23liDceeIqUi2cOYf2
         /// </summary>
         public string GitHubOAuthClientId => networkDefinitionsIni.GetStringValue("GitHubOAuth", "ClientId", "Ov23liDceeIqUi2cOYf2");
-        
+
         /// <summary>
         /// GitHub OAuth 回调地址 (来自[GitHubOAuth]节的RedirectUri)
         /// 默认值: http://localhost:12345/callback/
         /// </summary>
         public string GitHubOAuthRedirectUri => networkDefinitionsIni.GetStringValue("GitHubOAuth", "RedirectUri", "http://localhost:12345/callback/");
-        
+
         /// <summary>
         /// GitHub OAuth 权限范围 (来自[GitHubOAuth]节的Scopes)
         /// 默认值: read:user user:email
         /// </summary>
         public string GitHubOAuthScopes => networkDefinitionsIni.GetStringValue("GitHubOAuth", "Scopes", "read:user user:email");
-        
+
         /// <summary>
         /// 外部账户登录端点 (来自[Settings]节的ExternalAccountLoginEndpoint)
         /// 默认值: /login/github
         /// </summary>
         public string ExternalAccountLoginEndpoint => networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountLoginEndpoint", "/login/github");
-        
+
         /// <summary>
         /// 外部账户刷新令牌端点 (来自[Settings]节的ExternalAccountRefreshEndpoint)
         /// 默认值: 空字符串（表示不支持刷新令牌）
         /// </summary>
         public string ExternalAccountRefreshEndpoint => networkDefinitionsIni.GetStringValue(SETTINGS, "ExternalAccountRefreshEndpoint", string.Empty);
-        
+
         /// <summary>
         /// 外部账户用户信息端点 (来自[Settings]节的ExternalAccountUserInfoEndpoint)
         /// 默认值: /users/me
@@ -573,7 +573,7 @@ namespace ClientCore
         /// 检查外部账户功能是否启用（通过检查API基础地址是否配置）
         /// </summary>
         public bool IsExternalAccountEnabled => !string.IsNullOrEmpty(ExternalAccountApiBaseUrl);
-        
+
         #endregion
 
         public List<string> IRCServers => GetIRCServers();

@@ -25,12 +25,12 @@ namespace ClientCore.ExternalAccount
         private string _refreshToken;
         private UserInfo _userInfo;
 
-        private string _loginEndpoint = "api/auth/login";
-        private string _refreshEndpoint = "api/auth/refresh";
+        private string _loginEndpoint = "auth/login/guest";
+        private string _refreshEndpoint = "auth/refresh";
         private string _userInfoEndpoint = "users/me";
-        private string _updateProfileEndpoint = "api/v1/users/me";
-        private string _linkProviderEndpoint = "api/v1/link";
-        private string _unlinkEndpoint = "api/v1/auth/unlink";
+        private string _updateProfileEndpoint = "users/me";
+        private string _linkProviderEndpoint = "auth/link";
+        private string _unlinkEndpoint = "auth/unlink";
 
         public event EventHandler LoginStateChanged;
         public event EventHandler UserInfoUpdated;
@@ -303,7 +303,65 @@ namespace ClientCore.ExternalAccount
 
                 var responseJson = await response.Content.ReadAsStringAsync();
                 Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 收到响应: {responseJson}");
-                _userInfo = JsonSerializer.Deserialize<UserInfo>(responseJson);
+                
+                // 尝试解析嵌套的API响应结构（新后端格式）
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseJson);
+                    var root = doc.RootElement;
+                    
+                    // 检查是否是嵌套结构（包含card.profile）
+                    if (root.TryGetProperty("card", out var cardElement) && 
+                        cardElement.TryGetProperty("profile", out var profileElement))
+                    {
+                        // 新后端嵌套结构
+                        _userInfo = new UserInfo
+                        {
+                            Id = profileElement.TryGetProperty("user_id", out var userIdElement) ? 
+                                 userIdElement.GetInt32().ToString() : 
+                                 profileElement.TryGetProperty("id", out var idElement) ? 
+                                 idElement.GetString() : string.Empty,
+                            Nickname = profileElement.TryGetProperty("nickname", out var nicknameElement) ? 
+                                      nicknameElement.GetString() : string.Empty,
+                            Avatar = profileElement.TryGetProperty("avatar", out var avatarElement) ? 
+                                    avatarElement.GetString() : string.Empty,
+                            Level = profileElement.TryGetProperty("level", out var levelElement) ? 
+                                   levelElement.GetInt32() : 0,
+                            ExperiencePoints = root.TryGetProperty("experience_points", out var expElement) ? 
+                                             expElement.GetInt32() : 0,
+                            OnlineStatus = cardElement.TryGetProperty("status", out var statusElement) ? 
+                                          statusElement.GetString() : "online"
+                        };
+                        
+                        // 解析身份信息（如果存在）
+                        if (root.TryGetProperty("identities", out var identitiesElement) && 
+                            identitiesElement.ValueKind == JsonValueKind.Array)
+                        {
+                            _userInfo.Identities = new List<IdentityInfo>();
+                            foreach (var identity in identitiesElement.EnumerateArray())
+                            {
+                                _userInfo.Identities.Add(new IdentityInfo
+                                {
+                                    Provider = identity.TryGetProperty("provider", out var providerElement) ? 
+                                              providerElement.GetString() : string.Empty,
+                                    IdentityId = identity.TryGetProperty("provider_uid", out var uidElement) ? 
+                                                uidElement.GetString() : string.Empty
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 旧后端扁平结构
+                        _userInfo = JsonSerializer.Deserialize<UserInfo>(responseJson);
+                    }
+                }
+                catch (JsonException)
+                {
+                    // 如果JSON解析失败，尝试直接反序列化
+                    _userInfo = JsonSerializer.Deserialize<UserInfo>(responseJson);
+                }
+                
                 Rampastring.Tools.Logger.Log($"FetchUserInfoAsync: 用户信息反序列化成功 - Nickname: {_userInfo?.Nickname}, Avatar: {_userInfo?.Avatar}");
 
                 UserInfoUpdated?.Invoke(this, EventArgs.Empty);
