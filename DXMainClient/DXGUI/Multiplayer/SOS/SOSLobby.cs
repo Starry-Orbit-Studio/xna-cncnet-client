@@ -42,7 +42,7 @@ namespace DTAClient.DXGUI.Multiplayer.SOS
         public event EventHandler UpdateCheck;
 
         public SOSLobby(WindowManager windowManager,
-            BackendManager backendManager,
+            IBackendManager backendManager,
             CnCNetGameLobby gameLobby, // TODO: 考虑创建SOSGameLobby
             CnCNetGameLoadingLobby gameLoadingLobby,
             TopBar topBar, PrivateMessagingWindow pmWindow, TunnelHandler tunnelHandler,
@@ -79,7 +79,7 @@ namespace DTAClient.DXGUI.Multiplayer.SOS
 
         private MapLoader mapLoader;
 
-        private readonly BackendManager backendManager;
+        private readonly IBackendManager backendManager;
         private CnCNetUserData cncnetUserData;
         private readonly OptionsWindow optionsWindow;
         private readonly ExternalAccountService externalAccountService;

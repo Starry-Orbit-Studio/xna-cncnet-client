@@ -22,6 +22,7 @@ using DTAClient.DXGUI.Multiplayer.GameLobby;
 using DTAClient.DXGUI.Multiplayer.SOS;
 using DTAClient.Online;
 using DTAClient.Online.Backend;
+using DTAClient.Online.DomainAction;
 using ClientGUI.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -266,10 +267,17 @@ namespace DTAClient.DXGUI
                             .AddSingleton<ClientCore.ExternalAccount.ExternalAccountService>()
                             .AddSingleton<PlayerIdentityService>()
                             .AddSingleton<GuestIdentityService>()
+                            .AddSingleton<HttpClient>(provider => new HttpClient { Timeout = TimeSpan.FromSeconds(30) })
+                            .AddSingleton<Online.RedAlert.RedAlertApiClient>(provider =>
+                            {
+                                var baseUrl = ClientConfiguration.Instance.ExternalAccountApiBaseUrl;
+                                var httpClient = provider.GetRequiredService<HttpClient>();
+                                return new Online.RedAlert.RedAlertApiClient(baseUrl, httpClient);
+                            })
                             .AddSingleton<Online.Backend.BackendApiClient>(provider =>
                             {
                                 var baseUrl = ClientConfiguration.Instance.BackendApiBaseUrl;
-                                var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+                                var httpClient = provider.GetRequiredService<HttpClient>();
                                 return new Online.Backend.BackendApiClient(baseUrl, httpClient);
                             })
                             .AddSingleton<Online.Backend.BackendWebSocketClient>(provider =>
@@ -287,7 +295,12 @@ namespace DTAClient.DXGUI
                                 return new Online.Backend.BackendSessionManager(apiClient, wsClient, playerIdentityService, guestIdentityService, externalAccountService);
                             })
                             .AddSingleton<Online.Backend.BackendSpaceManager>()
-                            .AddSingleton<Online.Backend.BackendManager>();
+                            .AddSingleton<Online.Backend.IBackendManager, Online.DomainAction.DomainActionBackendManager>(provider =>
+                            {
+                                var redAlertApiClient = provider.GetRequiredService<Online.RedAlert.RedAlertApiClient>();
+                                var playerIdentityService = provider.GetRequiredService<PlayerIdentityService>();
+                                return new Online.DomainAction.DomainActionBackendManager(redAlertApiClient, playerIdentityService);
+                            });
                         // singleton xna controls - same instance on each request
                         services
                             .AddSingletonXnaControl<LoadingScreen>()
