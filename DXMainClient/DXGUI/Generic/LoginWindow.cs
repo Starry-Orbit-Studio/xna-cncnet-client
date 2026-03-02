@@ -18,7 +18,7 @@ namespace DTAClient.DXGUI.Generic
     public class LoginWindow : XNAWindow
     {
         private readonly ExternalAccountService _accountService;
-        private OAuthService _oauthService;
+        private OAuthFlowService _oauthService;
 
         public event EventHandler Connect;
         public event EventHandler Cancelled;
@@ -97,7 +97,7 @@ namespace DTAClient.DXGUI.Generic
                 
                 Logger.Log($"初始化OAuth服务: ApiBaseUrl={apiBaseUrl}");
                 
-                _oauthService = new OAuthService(apiBaseUrl, provider);
+                _oauthService = new OAuthFlowService(apiBaseUrl, provider);
                 _oauthService.AuthenticationCompleted += OAuthService_AuthenticationCompleted;
             }
             catch (Exception ex)
@@ -127,7 +127,7 @@ namespace DTAClient.DXGUI.Generic
             
             try
             {
-                _oauthService = new OAuthService(apiBaseUrl, provider);
+                _oauthService = new OAuthFlowService(apiBaseUrl, provider);
                 _oauthService.AuthenticationCompleted += OAuthService_AuthenticationCompleted;
             }
             catch (Exception ex)
@@ -160,13 +160,13 @@ namespace DTAClient.DXGUI.Generic
             }
         }
 
-        private async void OAuthService_AuthenticationCompleted(object sender, OAuthResult result)
+        private async void OAuthService_AuthenticationCompleted(object sender, OAuthFlowResult result)
         {
             // 在主UI线程上执行
             WindowManager.AddCallback(new Action(() => HandleOAuthResult(result)), null);
         }
 
-        private async void HandleOAuthResult(OAuthResult result)
+        private async void HandleOAuthResult(OAuthFlowResult result)
         {
             if (result.Success)
             {

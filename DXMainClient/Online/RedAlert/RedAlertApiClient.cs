@@ -47,7 +47,7 @@ namespace DTAClient.Online.RedAlert
         /// <returns>重定向URL</returns>
         public async Task<OAuthStartResponse> StartOAuthAsync(string provider)
         {
-            return await GetAsync<OAuthStartResponse>($"/api/v1/auth/start/{provider}");
+            return await GetAsync<OAuthStartResponse>($"/auth/start/{provider}");
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedAuthTokenResponse> LoginAsGuestAsync(GuestLoginRequest request)
         {
-            var restAuth = await PostAsync<AuthTokenResponse>("/api/v1/auth/login/guest", request);
+            var restAuth = await PostAsync<AuthTokenResponse>("/auth/login/guest", request);
             return _modelMapper.MapFromRestApi(restAuth);
         }
 
@@ -65,7 +65,7 @@ namespace DTAClient.Online.RedAlert
         public async Task<UnifiedAuthTokenResponse> LoginWithOAuthAsync(string provider, string code, string state)
         {
             var request = new OAuthLoginRequest { Code = code, State = state };
-            var restAuth = await PostAsync<AuthTokenResponse>($"/api/v1/auth/login/{provider}", request);
+            var restAuth = await PostAsync<AuthTokenResponse>($"/auth/login/{provider}", request);
             return _modelMapper.MapFromRestApi(restAuth);
         }
 
@@ -74,7 +74,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedConnectTicketResponse> GetConnectTicketAsync()
         {
-            var restTicket = await PostAsync<ConnectTicketResponse>("/api/v1/sessions/connect", null);
+            var restTicket = await PostAsync<ConnectTicketResponse>("/sessions/connect", null);
             _sessionId = restTicket.SessionId;
             return _modelMapper.MapFromRestApi(restTicket);
         }
@@ -87,7 +87,7 @@ namespace DTAClient.Online.RedAlert
             string id = sessionId ?? _sessionId;
             if (string.IsNullOrEmpty(id))
                 throw new InvalidOperationException("Session ID is not set");
-            return await GetAsync<SessionResponse>($"/api/v1/sessions/{id}");
+            return await GetAsync<SessionResponse>($"/sessions/{id}");
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace DTAClient.Online.RedAlert
         {
             if (string.IsNullOrEmpty(_sessionId))
                 throw new InvalidOperationException("Session ID is not set");
-            await DeleteAsync($"/api/v1/sessions/{_sessionId}");
+            await DeleteAsync($"/sessions/{_sessionId}");
             _sessionId = null;
         }
 
@@ -120,7 +120,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<List<UnifiedChannelInfo>> GetChannelsAsync()
         {
-            var restChannels = await GetAsync<List<ChannelResponse>>("/api/v1/channels/list");
+            var restChannels = await GetAsync<List<ChannelResponse>>("/channels/list");
             return _modelMapper.MapFromRestApi(restChannels);
         }
 
@@ -129,7 +129,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<List<UnifiedRoomSyncEvent>> GetChannelRoomsAsync(string channelId)
         {
-            var restRooms = await GetAsync<List<RoomSyncEvent>>($"/api/v1/channels/{channelId}/rooms");
+            var restRooms = await GetAsync<List<RoomSyncEvent>>($"/channels/{channelId}/rooms");
             return restRooms.ConvertAll(_modelMapper.MapFromRestApi);
         }
 
@@ -138,7 +138,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedChannelInfo> GetChannelAsync(string channelId)
         {
-            var restChannel = await GetAsync<ChannelResponse>($"/api/v1/channels/{channelId}");
+            var restChannel = await GetAsync<ChannelResponse>($"/channels/{channelId}");
             return _modelMapper.MapFromRestApi(restChannel);
         }
 
@@ -151,7 +151,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedRoomSyncEvent> GetRoomAsync(string roomId)
         {
-            var restRoom = await GetAsync<RoomSyncEvent>($"/api/v1/rooms/{roomId}");
+            var restRoom = await GetAsync<RoomSyncEvent>($"/rooms/{roomId}");
             return _modelMapper.MapFromRestApi(restRoom);
         }
 
@@ -160,7 +160,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedRoomSyncEvent> CreateRoomAsync(CreateRoomRequest request)
         {
-            var restRoom = await PostAsync<RoomSyncEvent>("/api/v1/rooms", request);
+            var restRoom = await PostAsync<RoomSyncEvent>("/rooms", request);
             return _modelMapper.MapFromRestApi(restRoom);
         }
 
@@ -169,7 +169,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedRoomSyncEvent> UpdateRoomAsync(string roomId, UpdateRoomRequest request)
         {
-            var restRoom = await PatchAsync<RoomSyncEvent>($"/api/v1/rooms/{roomId}", request);
+            var restRoom = await PatchAsync<RoomSyncEvent>($"/rooms/{roomId}", request);
             return _modelMapper.MapFromRestApi(restRoom);
         }
 
@@ -178,7 +178,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task DeleteRoomAsync(string roomId)
         {
-            await DeleteAsync($"/api/v1/rooms/{roomId}");
+            await DeleteAsync($"/rooms/{roomId}");
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task JoinRoomAsync(string roomId)
         {
-            await PostAsync<object>($"/api/v1/rooms/{roomId}/join", null);
+            await PostAsync<object>($"/rooms/{roomId}/join", null);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task LeaveRoomAsync(string roomId)
         {
-            await PostAsync<object>($"/api/v1/rooms/{roomId}/leave", null);
+            await PostAsync<object>($"/rooms/{roomId}/leave", null);
         }
 
         #endregion
@@ -206,7 +206,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedUserFullCard> GetCurrentUserAsync()
         {
-            var response = await GetAsync<UserMeResponse>("/api/v1/users/me");
+            var response = await GetAsync<UserMeResponse>("/users/me");
             
             // 直接从 UserMeResponse 映射到 UnifiedUserFullCard
             return new UnifiedUserFullCard
@@ -232,7 +232,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<List<UnifiedUserFullCard>> SearchUsersAsync(string query)
         {
-            var restUsers = await GetAsync<List<UserFullCard>>($"/api/v1/users/search?q={Uri.EscapeDataString(query)}");
+            var restUsers = await GetAsync<List<UserFullCard>>($"/users/search?q={Uri.EscapeDataString(query)}");
             return restUsers.ConvertAll(_modelMapper.MapFromRestApi);
         }
 
@@ -241,7 +241,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<UnifiedUserFullCard> GetUserAsync(string userId)
         {
-            var restUser = await GetAsync<UserFullCard>($"/api/v1/users/{userId}");
+            var restUser = await GetAsync<UserFullCard>($"/users/{userId}");
             return _modelMapper.MapFromRestApi(restUser);
         }
 
@@ -250,7 +250,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<OnlineUsersResponse> GetOnlineUsersAsync()
         {
-            return await GetAsync<OnlineUsersResponse>("/api/v1/presence/online-users");
+            return await GetAsync<OnlineUsersResponse>("/presence/online-users");
         }
 
         #endregion
@@ -263,7 +263,7 @@ namespace DTAClient.Online.RedAlert
         public async Task<FriendshipResponse> SendFriendRequestAsync(string friendId)
         {
             var request = new SendFriendRequestRequest { FriendId = friendId };
-            return await PostAsync<FriendshipResponse>("/api/v1/social/friends/request", request);
+            return await PostAsync<FriendshipResponse>("/social/friends/request", request);
         }
 
         /// <summary>
@@ -271,7 +271,7 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<List<FriendshipResponse>> GetFriendsAsync()
         {
-            return await GetAsync<List<FriendshipResponse>>("/api/v1/social/friends");
+            return await GetAsync<List<FriendshipResponse>>("/social/friends");
         }
 
         /// <summary>
@@ -279,22 +279,74 @@ namespace DTAClient.Online.RedAlert
         /// </summary>
         public async Task<List<FriendshipResponse>> GetFriendRequestsAsync()
         {
-            return await GetAsync<List<FriendshipResponse>>("/api/v1/social/friends/requests");
+            return await GetAsync<List<FriendshipResponse>>("/social/friends/requests");
         }
 
         #endregion
 
         #region 私有HTTP方法
 
+        private string BuildUrl(string endpoint)
+        {
+            try
+            {
+                // 确保基础URL不以斜杠结尾，端点不以斜杠开头
+                string baseUrl = _baseUrl.TrimEnd('/');
+                string path = endpoint.TrimStart('/');
+                
+                // 检查并移除重复的路径段（例如基础URL已包含/api/v1，端点也以api/v1开头）
+                var baseUri = new Uri(baseUrl);
+                string basePath = baseUri.AbsolutePath.Trim('/');
+                
+                if (!string.IsNullOrEmpty(basePath) && path.StartsWith(basePath + "/", StringComparison.OrdinalIgnoreCase))
+                {
+                    // 移除重复的路径段
+                    path = path.Substring(basePath.Length + 1); // +1 for the slash
+                }
+                else if (path.Equals(basePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    // 端点路径与基础路径完全相同
+                    path = string.Empty;
+                }
+                
+                // 构建最终URL
+                string result;
+                if (string.IsNullOrEmpty(path))
+                {
+                    result = baseUrl;
+                }
+                else
+                {
+                    result = $"{baseUrl}/{path}";
+                }
+                
+                // 记录构建的URL用于调试
+                if (ClientConfiguration.Instance.EnableBackendDebugLog)
+                {
+                    Logger.Log($"[RedAlert API] BuildUrl: endpoint='{endpoint}', baseUrl='{_baseUrl}', result='{result}'");
+                }
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"[RedAlert API] BuildUrl error: {ex.Message}");
+                // 回退到简单拼接
+                return $"{_baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+            }
+        }
+
         private async Task<T> GetAsync<T>(string endpoint)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, _baseUrl + endpoint);
+            var url = BuildUrl(endpoint);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
             return await SendRequestAsync<T>(request);
         }
 
         private async Task<T> PostAsync<T>(string endpoint, object? body)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, _baseUrl + endpoint);
+            var url = BuildUrl(endpoint);
+            var request = new HttpRequestMessage(HttpMethod.Post, url);
             if (body != null)
             {
                 var json = JsonSerializer.Serialize(body);
@@ -305,7 +357,8 @@ namespace DTAClient.Online.RedAlert
 
         private async Task<T> PatchAsync<T>(string endpoint, object body)
         {
-            var request = new HttpRequestMessage(new HttpMethod("PATCH"), _baseUrl + endpoint);
+            var url = BuildUrl(endpoint);
+            var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
             var json = JsonSerializer.Serialize(body);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             return await SendRequestAsync<T>(request);
@@ -313,12 +366,16 @@ namespace DTAClient.Online.RedAlert
 
         private async Task DeleteAsync(string endpoint)
         {
-            var request = new HttpRequestMessage(HttpMethod.Delete, _baseUrl + endpoint);
+            var url = BuildUrl(endpoint);
+            var request = new HttpRequestMessage(HttpMethod.Delete, url);
             await SendRequestAsync<object>(request);
         }
 
         private async Task<T> SendRequestAsync<T>(HttpRequestMessage request)
         {
+            // 总是记录请求URL用于调试
+            Logger.Log($"[RedAlert API] {request.Method} {request.RequestUri}");
+            
             if (ClientConfiguration.Instance.EnableBackendDebugLog)
             {
                 string logMessage = $"[RedAlert API] {request.Method} {request.RequestUri}";
@@ -335,7 +392,12 @@ namespace DTAClient.Online.RedAlert
 
             string responseContent = await response.Content.ReadAsStringAsync();
 
-            if (ClientConfiguration.Instance.EnableBackendDebugLog)
+            // 总是记录错误响应
+            if (!response.IsSuccessStatusCode)
+            {
+                Logger.Log($"[RedAlert API] HTTP error: {(int)response.StatusCode} {response.StatusCode} - {responseContent}");
+            }
+            else if (ClientConfiguration.Instance.EnableBackendDebugLog)
             {
                 DebugLog?.Invoke(this, $"[RedAlert API] Response ({(int)response.StatusCode}): {responseContent}");
             }

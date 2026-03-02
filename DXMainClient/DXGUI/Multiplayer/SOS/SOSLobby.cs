@@ -804,7 +804,7 @@ namespace DTAClient.DXGUI.Multiplayer.SOS
             {
                 _isRefreshingBackendGames = true;
                 
-                Logger.Log($"[SOSLobby] Refreshing backend games, SpaceManager is null: {backendManager.SpaceManager == null}");
+                Logger.Log($"[SOSLobby] Refreshing backend games, backendManager type: {backendManager.GetType().Name}, SpaceManager is null: {backendManager.SpaceManager == null}");
                 
                 if (backendManager.SpaceManager == null)
                 {
