@@ -28,7 +28,7 @@ namespace DTAClient.Online.Backend
             _playerIdentityService = playerIdentityService;
         }
 
-        public async Task<BackendChannel> CreateLobbyAsync(string name, int maxMembers = 100, bool isPrivate = false)
+        public virtual async Task<BackendChannel> CreateLobbyAsync(string name, int maxMembers = 100, bool isPrivate = false)
         {
             var request = new CreateSpaceRequest
             {
@@ -47,7 +47,7 @@ namespace DTAClient.Online.Backend
             return channel;
         }
 
-        public async Task<BackendChannel> CreateRoomAsync(string name, int maxMembers, bool isPrivate)
+        public virtual async Task<BackendChannel> CreateRoomAsync(string name, int maxMembers, bool isPrivate)
         {
             var request = new CreateSpaceRequest
             {
@@ -66,29 +66,29 @@ namespace DTAClient.Online.Backend
             return channel;
         }
 
-        public async Task<List<BackendChannel>> GetLobbiesAsync()
+        public virtual async Task<List<BackendChannel>> GetLobbiesAsync()
         {
             var spaces = await _apiClient.GetSpacesAsync("lobby");
             return spaces.Select(CreateChannelFromSpace).ToList();
         }
 
-        public async Task<List<BackendChannel>> GetRoomsAsync()
+        public virtual async Task<List<BackendChannel>> GetRoomsAsync()
         {
             var spaces = await _apiClient.GetSpacesAsync("room");
             return spaces.Select(CreateChannelFromSpace).ToList();
         }
 
-        public async Task<List<SpaceResponse>> GetRoomSpacesAsync()
+        public virtual async Task<List<SpaceResponse>> GetRoomSpacesAsync()
         {
             return await _apiClient.GetSpacesAsync("room");
         }
 
-        public async Task<List<SpaceMemberResponse>> GetSpaceMembersAsync(int spaceId)
+        public virtual async Task<List<SpaceMemberResponse>> GetSpaceMembersAsync(int spaceId)
         {
             return await _apiClient.GetSpaceMembersAsync(spaceId);
         }
 
-        public async Task<BackendChannel?> GetChannelAsync(int spaceId)
+        public virtual async Task<BackendChannel?> GetChannelAsync(int spaceId)
         {
             if (_channels.TryGetValue(spaceId, out var channel))
                 return channel;
@@ -100,7 +100,7 @@ namespace DTAClient.Online.Backend
             return channel;
         }
 
-        public async Task JoinChannelAsync(int spaceId)
+        public virtual async Task JoinChannelAsync(int spaceId)
         {
             await _apiClient.JoinSpaceAsync(spaceId);
 
@@ -111,7 +111,7 @@ namespace DTAClient.Online.Backend
             }
         }
 
-        public async Task LeaveChannelAsync(int spaceId)
+        public virtual async Task LeaveChannelAsync(int spaceId)
         {
             await _apiClient.LeaveSpaceAsync(spaceId);
 
@@ -121,7 +121,7 @@ namespace DTAClient.Online.Backend
             }
         }
 
-        public async Task UpdateChannelAsync(int spaceId, UpdateSpaceRequest request)
+        public virtual async Task UpdateChannelAsync(int spaceId, UpdateSpaceRequest request)
         {
             var space = await _apiClient.UpdateSpaceAsync(spaceId, request);
 
@@ -132,7 +132,7 @@ namespace DTAClient.Online.Backend
             }
         }
 
-        public async Task DeleteChannelAsync(int spaceId)
+        public virtual async Task DeleteChannelAsync(int spaceId)
         {
             await _apiClient.DeleteSpaceAsync(spaceId);
 

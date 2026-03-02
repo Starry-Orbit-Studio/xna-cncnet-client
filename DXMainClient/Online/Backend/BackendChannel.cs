@@ -49,7 +49,7 @@ namespace DTAClient.Online.Backend
             SendChatMessageBackend(message, color);
         }
 
-        public void SendChatMessageBackend(string message, IRCColor color)
+        public virtual void SendChatMessageBackend(string message, IRCColor color)
         {
             AddMessage(new ChatMessage(ProgramConstants.PLAYERNAME, color.XnaColor, DateTime.Now, message));
 
@@ -57,12 +57,12 @@ namespace DTAClient.Online.Backend
             _ = _wsClient.SendMessageAsync(spaceId, message, IsChatChannel ? "room" : "lobby");
         }
 
-        public void JoinBackend()
+        public virtual void JoinBackend()
         {
             _ = _sessionManager.JoinSpaceAsync(_spaceId);
         }
 
-        public void LeaveBackend()
+        public virtual void LeaveBackend()
         {
             _ = _sessionManager.LeaveSpaceAsync(_spaceId);
             ClearUsers();
@@ -79,7 +79,7 @@ namespace DTAClient.Online.Backend
             _channel = channel;
         }
 
-        public async Task LoadMembersAsync()
+        public virtual async Task LoadMembersAsync()
         {
             try
             {

@@ -16,7 +16,7 @@ using ClientCore.Enums;
 
 namespace DTAClient.Online.Backend
 {
-    public class BackendManager : IConnectionManager
+    public class BackendManager : IBackendManager
     {
         private readonly BackendSessionManager _sessionManager;
         private readonly BackendSpaceManager _spaceManager;
