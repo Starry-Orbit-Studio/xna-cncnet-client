@@ -1568,6 +1568,21 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 if (!success)
                     return;
 
+                var ipAndPort = parts[i + 1].Split(':');
+
+                if (ipAndPort.Length < 2)
+                    return;
+
+                var portSucc = int.TryParse(ipAndPort[1], out var port);
+
+                if (!portSucc)
+                    return;
+
+                var lvlSucc = int.TryParse(parts[i + 2], out var ComLvl);
+
+                if (!lvlSucc)
+                    return;
+
                 pInfo.Port = port;
                 pInfo.Com_Level = ComLvl;
                 recentPlayers.Add(pInfo.Name);
