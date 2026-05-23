@@ -195,12 +195,12 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 btnJoinGame.Right - btnNewGame.X, btnNewGame.Y - 47
             );
 
-            panelGameFilters = new GameFiltersPanel(WindowManager);
+            panelGameFilters = new GameFiltersPanel(WindowManager, gameLobby);
             panelGameFilters.Name = nameof(panelGameFilters);
             panelGameFilters.ClientRectangle = gameListRectangle;
             panelGameFilters.Disable();
 
-            lbGameList = new GameListBox(WindowManager, mapLoader, localGameID, HostedGameMatches);
+            lbGameList = new GameListBox(WindowManager, mapLoader, localGameID, gameLobby, HostedGameMatches);
             lbGameList.Name = nameof(lbGameList);
             lbGameList.ClientRectangle = gameListRectangle;
             lbGameList.PanelBackgroundDrawMode = PanelBackgroundImageDrawMode.STRETCHED;
@@ -425,6 +425,12 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbGameList.ViewTop = 0;
         }
 
+
+        /// <summary>
+        /// Checks if a hosted game matches the current filter criteria.
+        /// </summary>
+        /// <param name="hg">The hosted game to check.</param>
+        /// <returns>True if the game matches the filter criteria, false otherwise.</returns>
         private bool HostedGameMatches(GenericHostedGame hg)
         {
             // friends list takes priority over other filters below
@@ -441,6 +447,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 return false;
 
             if (hg.MaxPlayers > UserINISettings.Instance.MaxPlayerCount.Value)
+                return false;
+
+            if (hg is HostedCnCNetGame cncnetGame && !GameOptionsMatch(cncnetGame))
                 return false;
 
             string textUpper = tbGameSearch?.Text?.ToUpperInvariant();
@@ -464,6 +473,34 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 hg.Players.Any(pl => pl.ToUpperInvariant().Equals(textUpper, StringComparison.Ordinal));
         }
 
+        /// <summary>
+        /// Checks if a game's broadcast options match the current filter criteria.
+        /// </summary>
+        /// <param name="game">The hosted game to check.</param>
+        /// <returns>True if the game matches the filter criteria, false otherwise.</returns>
+        private bool GameOptionsMatch(HostedCnCNetGame game)
+        {
+            if (game.BroadcastedGameOptionValues == null)
+                return true;
+
+            var broadcastableSettings = gameLobby.GetBroadcastableSettings();
+
+            for (int i = 0; i < broadcastableSettings.Count; i++)
+            {
+                if (i >= game.BroadcastedGameOptionValues.Length)
+                    break;
+
+                int? filterValue = UserINISettings.Instance.GetGameOptionFilterValue(broadcastableSettings[i].Name);
+
+                if (filterValue == null)
+                    continue;
+
+                if (game.BroadcastedGameOptionValues[i] != filterValue.Value)
+                    return false;
+            }
+
+            return true;
+        }
 
         private void OnCnCNetGameCountUpdated(object sender, PlayerCountEventArgs e) => UpdateOnlineCount(e.PlayerCount);
 
@@ -569,7 +606,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 #endif
 
             connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, Renderer.GetSafeString(
-                    string.Format("*** DTA CnCNet Client version {0} ***".L10N("Client:Main:CnCNetClientVersionMessage"), clientVersion),
+                    string.Format("*** CnCNet Client version {0} ***".L10N("Client:Main:CnCNetClientVersionMessageV2"), clientVersion),
                     lbChatMessages.FontIndex)));
 
             {
@@ -840,7 +877,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 return "Cannot join game. The host is on a different game version than you.".L10N("Client:Main:DisallowJoiningIncompatibleGames");
 
             if (hg.Locked)
-                return "The selected game is locked!".L10N("Client:Main:GameLocked");
+                return string.Format("The game {0} is locked!".L10N("Client:Main:GameLockedWithName"), hg.RoomName);
 
             if (hg.IsLoadedGame && !hg.Players.Contains(ProgramConstants.PLAYERNAME))
                 return "You do not exist in the saved game!".L10N("Client:Main:NotInSavedGame");
@@ -891,8 +928,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 return false;
             }
 
-            // if (hg.GameVersion != ProgramConstants.GAME_VERSION)
-            // TODO Show warning
+            if (hg.GameVersion != ProgramConstants.GAME_VERSION)
+                messageView.AddMessage(new ChatMessage(Color.Yellow, "The game host is on a different game version than you. Version incompatibilities may cause issues.".L10N("Client:Main:JoinGameVersionMismatch")));
 
             if (hg.Passworded)
             {
@@ -968,14 +1005,18 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void GameChannel_InviteOnlyErrorOnJoin(object sender, EventArgs e)
         {
-            connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, "The selected game is locked!".L10N("Client:Main:GameLocked")));
             var channel = (Channel)sender;
 
             var game = FindGameByChannelName(channel.ChannelName);
             if (game != null)
             {
+                connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, string.Format("The game {0} is locked!".L10N("Client:Main:GameLockedWithName"), game.RoomName)));
                 game.Locked = true;
                 SortAndRefreshHostedGames();
+            }
+            else
+            {
+                connectionManager.MainChannel.AddMessage(new ChatMessage(Color.White, "The selected game is locked!".L10N("Client:Main:GameLocked")));
             }
 
             ClearGameJoinAttempt((Channel)sender);
@@ -1516,7 +1557,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             string msg = e.Message.Substring(5); // Cut out GAME part
             string[] splitMessage = msg.Split(new char[] { ';' });
 
-            if (splitMessage.Length != 13)
+            if (splitMessage.Length != 14)
             {
                 Logger.Log("Ignoring CTCP game message because of an invalid amount of parameters.");
 
@@ -1559,8 +1600,53 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 int tunnelPort = int.Parse(tunnelAddressAndPort[1]);
 
                 string loadedGameId = splitMessage[10];
-                int skillLevel = int.Parse(splitMessage[11]);
+                int skillLevel = ClientConfiguration.Instance.NormalizeSkillLevel(
+                    Conversions.IntFromString(splitMessage[11], ClientConfiguration.Instance.DefaultSkillLevelIndex));
                 string mapHash = splitMessage[12];
+
+                int[] gameOptionValues = null;
+
+                // Games with different versions may have different option counts, so ignore
+                if (gameVersion == ProgramConstants.GAME_VERSION && channel.ChannelName == localGame?.GameBroadcastChannel)
+                {
+                    var broadcastableSettings = gameLobby.GetBroadcastableSettings();
+                    if (broadcastableSettings.Count == 0)
+                    {
+                        gameOptionValues = null;
+                    }
+                    else if (!string.IsNullOrEmpty(splitMessage[13]))
+                    {
+                        gameOptionValues = new int[broadcastableSettings.Count];
+                        string[] allValueStrings = splitMessage[13].Split(',');
+
+                        int checkboxCount = gameLobby.CheckBoxes.Count(cb => cb.BroadcastToLobby);
+                        int packedCheckboxCount = (checkboxCount + 31) / 32;
+
+                        // packed checkbox values
+                        if (checkboxCount > 0 && allValueStrings.Length >= packedCheckboxCount)
+                        {
+                            int[] packedCheckboxes = new int[packedCheckboxCount];
+                            for (int i = 0; i < packedCheckboxCount; i++)
+                                packedCheckboxes[i] = int.Parse(allValueStrings[i]);
+
+                            for (int i = 0; i < checkboxCount; i++)
+                            {
+                                int packedIndex = i / 32;
+                                int bitIndex = i % 32;
+                                gameOptionValues[i] = (packedCheckboxes[packedIndex] & (1 << bitIndex)) != 0 ? 1 : 0;
+                            }
+                        }
+
+                        // dropdown indices
+                        int dropdownCount = gameLobby.DropDowns.Count(dd => dd.BroadcastToLobby);
+                        if (dropdownCount > 0)
+                        {
+                            int count = Math.Min(allValueStrings.Length - packedCheckboxCount, dropdownCount);
+                            for (int i = 0; i < count; i++)
+                                gameOptionValues[checkboxCount + i] = int.Parse(allValueStrings[packedCheckboxCount + i]);
+                        }
+                    }
+                }
 
                 CnCNetGame cncnetGame = gameCollection.GameList.Find(g => g.GameBroadcastChannel == channel.ChannelName);
 
@@ -1619,6 +1705,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 game.Incompatible = cncnetGame == localGame && game.GameVersion != ProgramConstants.GAME_VERSION;
                 game.TunnelServer = tunnel;
                 game.SkillLevel = skillLevel;
+                game.BroadcastedGameOptionValues = gameOptionValues;
 
                 if (isClosed)
                 {
@@ -1801,6 +1888,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 messageView.AddMessage(new ChatMessage(Color.White, string.Format("{0} is not in a game!".L10N("Client:Main:UserNotInGame"), user.Name)));
                 return;
+            }
+
+            int gameIndex = lbGameList.Items.FindIndex(item => item.Tag == game);
+            if (gameIndex >= 0)
+            {
+                lbGameList.SelectedIndex = gameIndex;
+                lbGameList.ScrollToSelectedElement();
             }
 
             JoinGame(game, string.Empty, messageView);

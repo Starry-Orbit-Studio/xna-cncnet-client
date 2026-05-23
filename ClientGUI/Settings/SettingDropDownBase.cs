@@ -36,6 +36,7 @@ namespace ClientGUI.Settings
         }
 
         public bool RestartRequired { get; set; }
+        public bool ResetToDefaultOnGameExit { get; set; }
 
         protected string defaultSection = "CustomSettings";
         protected string defaultKeySuffix = "_SelectedIndex";
